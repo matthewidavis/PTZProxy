@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PTZOptics Camera Control</title>
+  <style>
+    /* Basic styling */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #2a2a2a;
+      color: #eaeaea;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    #container {
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: #333;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    input[type="text"],
+    input[type="number"] {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+    }
+    select {
+      padding: 5px;
+      border-radius: 5px;
+      margin: 5px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007BFF;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #camera-feed {
+      width: 100%;
+      max-height: 400px;
+      border: 2px solid #555;
+      margin-top: 20px;
+    }
+    /* Section layout */
+    .section {
+      margin: 20px 0;
+    }
+    /* Image orientation controls */
+    #image-orientation {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    /* Pan-Tilt grid */
+    #pan-tilt-controls {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    /* Speed and options layout */
+    #speed-controls,
+    #controls > div,
+    #preset-input {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    #preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #preset-buttons button {
+      flex: 0 0 30%;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- Connection Section: device selection instead of manual IP input -->
+    <div class="section" id="connection-section">
+      <label for="deviceSelect">Select Device:</label>
+      <select id="deviceSelect">
+        <option value="camera1" selected>Camera 1</option>
+        <option value="camera2">Camera 2</option>
+        <option value="controller">Controller</option>
+      </select>
+      <button id="connectionToggle">CONNECT</button>
+    </div>
+
+    <!-- Camera Feed -->
+    <img id="camera-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera Feed" />
+
+    <!-- Image Orientation Controls -->
+    <div class="section" id="image-orientation">
+      <button onclick="applyTransform('rotate')">Rotate 90°</button>
+      <button onclick="applyTransform('flipH')">Flip Horizontally</button>
+      <button onclick="applyTransform('flipV')">Flip Vertically</button>
+      <button onclick="applyTransform('default')">Default</button>
+    </div>
+
+    <!-- Pan-Tilt Controls -->
+    <div class="section" id="pan-tilt-controls">
+      <button onmousedown="sendCommand('upleft')" onmouseup="sendCommand('ptzstop')">&#8598;</button>
+      <button onmousedown="sendCommand('up')" onmouseup="sendCommand('ptzstop')">&#8593;</button>
+      <button onmousedown="sendCommand('upright')" onmouseup="sendCommand('ptzstop')">&#8599;</button>
+      <button onmousedown="sendCommand('left')" onmouseup="sendCommand('ptzstop')">&#8592;</button>
+      <button onclick="sendHomeCommand()">HOME</button>
+      <button onmousedown="sendCommand('right')" onmouseup="sendCommand('ptzstop')">&#8594;</button>
+      <button onmousedown="sendCommand('downleft')" onmouseup="sendCommand('ptzstop')">&#8601;</button>
+      <button onmousedown="sendCommand('down')" onmouseup="sendCommand('ptzstop')">&#8595;</button>
+      <button onmousedown="sendCommand('downright')" onmouseup="sendCommand('ptzstop')">&#8600;</button>
+    </div>
+
+    <!-- Pan/Tilt Speed and Options -->
+    <div class="section" id="speed-controls">
+      <div>
+        <label for="panSpeed">Pan Speed:</label>
+        <select id="panSpeed">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
+          <option value="20">20</option>
+          <option value="21">21</option>
+          <option value="22">22</option>
+          <option value="23">23</option>
+          <option value="24">24</option>
+        </select>
+      </div>
+      <div>
+        <label for="tiltSpeed">Tilt Speed:</label>
+        <select id="tiltSpeed">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+      <div>
+        <label for="motionSync">MotionSync:</label>
+        <input type="checkbox" id="motionSync" />
+      </div>
+      <div id="trackingCheckboxContainer">
+        <label for="enableTracking">Tracking:</label>
+        <input type="checkbox" id="enableTracking" />
+      </div>
+    </div>
+
+    <!-- Zoom and Focus Controls -->
+    <div class="section" id="controls">
+      <div>
+        <button onmousedown="zoomIn()" onmouseup="sendStopCommands()">Zoom In</button>
+        <button onmousedown="zoomOut()" onmouseup="sendStopCommands()">Zoom Out</button>
+        <button onmousedown="sendStopCommands()">Stop</button>
+        <button onmousedown="focusIn()" onmouseup="sendStopCommands()">Focus In</button>
+        <button onmousedown="focusOut()" onmouseup="sendStopCommands()">Focus Out</button>
+      </div>
+      <div>
+        <label for="zoomSpeed">Zoom Speed:</label>
+        <select id="zoomSpeed">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+        </select>
+        <label for="focusSpeed">Focus Speed:</label>
+        <select id="focusSpeed">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Presets and FPS -->
+    <div class="section" id="presets-container">
+      <div id="preset-buttons">
+        <button onclick="preset('recall', 1)">Preset 1</button>
+        <button onclick="preset('recall', 2)">Preset 2</button>
+        <button onclick="preset('recall', 3)">Preset 3</button>
+        <button onclick="preset('recall', 4)">Preset 4</button>
+        <button onclick="preset('recall', 5)">Preset 5</button>
+        <button onclick="preset('recall', 6)">Preset 6</button>
+      </div>
+      <div id="preset-input">
+        <input type="number" id="preset-number" placeholder="Preset Number" />
+        <button onclick="recallpresetFromInput()">Call</button>
+        <button onclick="savepresetFromInput()">Set</button>
+        <label for="fpsSelect">FPS:</label>
+        <select id="fpsSelect">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7" selected>7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
+          <option value="20">20</option>
+          <option value="21">21</option>
+          <option value="22">22</option>
+          <option value="23">23</option>
+          <option value="24">24</option>
+          <option value="25">25</option>
+          <option value="26">26</option>
+          <option value="27">27</option>
+          <option value="28">28</option>
+          <option value="29">29</option>
+          <option value="30">30</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables for proxy usage
+    const proxyUrl = "https://your-proxy-server.com"; // Update with your deployed proxy URL
+    let defaultDevice = "camera1"; // Updated via dropdown selection
+    let isConnected = false;
+    let frameInterval;
+    const DEFAULT_FPS = 3;
+    let FRAME_RATE = 1000 / DEFAULT_FPS;
+    let currentTransform = "";
+    let currentRotationDegree = 0;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("deviceSelect").addEventListener("change", (e) => {
+        defaultDevice = e.target.value;
+      });
+      document.getElementById("connectionToggle").addEventListener("click", toggleConnection);
+      document.getElementById("fpsSelect").addEventListener("change", handleFpsChange);
+      document.getElementById("motionSync").addEventListener("change", handleMotionSyncChange);
+      document.getElementById("enableTracking").addEventListener("change", function () {
+        if (this.checked) {
+          fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&on`);
+        } else {
+          fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&off`);
+        }
+      });
+    });
+
+    function handleFpsChange(event) {
+      const selectedFps = parseInt(event.target.value, 10);
+      FRAME_RATE = 1000 / selectedFps;
+      if (isConnected) {
+        stopLivePreview();
+        startLivePreview();
+      }
+    }
+
+    function handleMotionSyncChange(event) {
+      const isChecked = event.target.checked;
+      const commandUrl = isChecked
+          ? `${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&2`
+          : `${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&3`;
+      fetch(commandUrl);
+    }
+
+    function toggleConnection() {
+      const toggleButton = document.getElementById("connectionToggle");
+      if (!isConnected) {
+        startLivePreview();
+        toggleButton.textContent = "DISCONNECT";
+      } else {
+        stopLivePreview();
+        toggleButton.textContent = "CONNECT";
+        document.getElementById("camera-feed").src = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
+      }
+      isConnected = !isConnected;
+    }
+
+    function startLivePreview() {
+      frameInterval = setInterval(fetchCameraFrame, FRAME_RATE);
+    }
+
+    function stopLivePreview() {
+      clearInterval(frameInterval);
+    }
+
+    function fetchCameraFrame() {
+      const cameraFeed = document.getElementById("camera-feed");
+      // Append timestamp to avoid caching
+      cameraFeed.src = `${proxyUrl}/proxy/snapshot?device=${defaultDevice}&timestamp=${new Date().getTime()}`;
+    }
+
+    function sendCommand(cmd) {
+      const PAN_SPEED = document.getElementById("panSpeed").value;
+      const TILT_SPEED = document.getElementById("tiltSpeed").value;
+      let command;
+      switch (cmd) {
+        case "up":
+          command = `up&${TILT_SPEED}`;
+          break;
+        case "down":
+          command = `down&${TILT_SPEED}`;
+          break;
+        case "left":
+          command = `left&${PAN_SPEED}`;
+          break;
+        case "right":
+          command = `right&${PAN_SPEED}`;
+          break;
+        case "upleft":
+          command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "upright":
+          command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "downleft":
+          command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "downright":
+          command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "ptzstop":
+          command = `ptzstop`;
+          break;
+        default:
+          command = cmd;
+          break;
+      }
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`)
+        .catch((err) => console.error("Command error:", err));
+    }
+
+    function sendHomeCommand() {
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&home`);
+    }
+
+    function preset(action, pos) {
+      const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`);
+    }
+
+    function savepresetFromInput() {
+      const presetNumber = document.getElementById("preset-number").value;
+      if (presetNumber) {
+        preset("set", presetNumber);
+      } else {
+        alert("Please enter a valid preset number!");
+      }
+    }
+
+    function recallpresetFromInput() {
+      const presetNumber = document.getElementById("preset-number").value;
+      if (presetNumber) {
+        preset("recall", presetNumber);
+      } else {
+        alert("Please enter a valid preset number!");
+      }
+    }
+
+    function zoomIn() {
+      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`);
+    }
+
+    function zoomOut() {
+      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`);
+    }
+
+    function focusIn() {
+      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`);
+    }
+
+    function focusOut() {
+      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`);
+    }
+
+    function sendStopCommands() {
+      const panSpeed = 1;
+      const tiltSpeed = 1;
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`);
+      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`);
+    }
+
+    function applyTransform(type) {
+      const cameraFeed = document.getElementById("camera-feed");
+      const aspectRatio = cameraFeed.offsetWidth / cameraFeed.offsetHeight;
+      let scaleFactor;
+      switch (type) {
+        case "rotate":
+          currentRotationDegree += 90;
+          if (currentRotationDegree % 360 === 0 || currentRotationDegree % 180 === 0) {
+            scaleFactor = 1;
+          } else {
+            scaleFactor = 1 / aspectRatio;
+          }
+          currentTransform = "rotate(" + currentRotationDegree + "deg) scale(" + scaleFactor + ")";
+          cameraFeed.style.transformOrigin = "center";
+          break;
+        case "flipH":
+          currentTransform = currentTransform.includes("scaleX(-1)") ? "" : "scaleX(-1)";
+          break;
+        case "flipV":
+          currentTransform = currentTransform.includes("scaleY(-1)") ? "" : "scaleY(-1)";
+          break;
+        case "default":
+          currentTransform = "";
+          currentRotationDegree = 0;
+          break;
+      }
+      cameraFeed.style.transform = currentTransform;
+    }
+  </script>
+</body>
+</html>
