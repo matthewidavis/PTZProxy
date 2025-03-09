@@ -365,99 +365,95 @@
       cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${new Date().getTime()}`;
     }
 
+    // Helper: builds the full proxy URL with the inner URL encoded.
+    function buildProxyUrl(innerUrl) {
+    return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
+    }
+
+    // Updated sendCommand function:
     function sendCommand(cmd) {
-      const PAN_SPEED = document.getElementById("panSpeed").value;
-      const TILT_SPEED = document.getElementById("tiltSpeed").value;
-      let command;
-      switch (cmd) {
+    const PAN_SPEED = document.getElementById("panSpeed").value;
+    const TILT_SPEED = document.getElementById("tiltSpeed").value;
+    let command;
+    switch (cmd) {
         case "up":
-          command = `up&${TILT_SPEED}`;
-          break;
+        command = `up&${TILT_SPEED}`;
+        break;
         case "down":
-          command = `down&${TILT_SPEED}`;
-          break;
+        command = `down&${TILT_SPEED}`;
+        break;
         case "left":
-          command = `left&${PAN_SPEED}`;
-          break;
+        command = `left&${PAN_SPEED}`;
+        break;
         case "right":
-          command = `right&${PAN_SPEED}`;
-          break;
+        command = `right&${PAN_SPEED}`;
+        break;
         case "upleft":
-          command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "upright":
-          command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "downleft":
-          command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "downright":
-          command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "ptzstop":
-          command = `ptzstop`;
-          break;
+        command = `ptzstop`;
+        break;
         default:
-          command = cmd;
-          break;
-      }
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`)
+        command = cmd;
+        break;
+    }
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
         .catch((err) => console.error("Command error:", err));
     }
 
+    // Updated sendHomeCommand:
     function sendHomeCommand() {
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&home`);
+    fetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"));
     }
 
+    // Updated preset function:
     function preset(action, pos) {
-      const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`);
+    const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`));
     }
 
-    function savepresetFromInput() {
-      const presetNumber = document.getElementById("preset-number").value;
-      if (presetNumber) {
-        preset("set", presetNumber);
-      } else {
-        alert("Please enter a valid preset number!");
-      }
-    }
-
-    function recallpresetFromInput() {
-      const presetNumber = document.getElementById("preset-number").value;
-      if (presetNumber) {
-        preset("recall", presetNumber);
-      } else {
-        alert("Please enter a valid preset number!");
-      }
-    }
-
+    // Updated zoomIn:
     function zoomIn() {
-      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`);
+    const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`));
     }
 
+    // Updated zoomOut:
     function zoomOut() {
-      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`);
+    const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`));
     }
 
+    // Updated focusIn:
     function focusIn() {
-      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`);
+    const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`));
     }
 
+    // Updated focusOut:
     function focusOut() {
-      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`);
+    const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`));
     }
 
+    // Updated sendStopCommands:
     function sendStopCommands() {
-      const panSpeed = 1;
-      const tiltSpeed = 1;
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`);
-      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`);
+    const panSpeed = 1;
+    const tiltSpeed = 1;
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`));
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`));
     }
+
 
     function applyTransform(type) {
       const cameraFeed = document.getElementById("camera-feed");
