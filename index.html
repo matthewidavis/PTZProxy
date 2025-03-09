@@ -370,12 +370,10 @@
     return url;
     }
 
+    // Helper: builds the full proxy URL with the inner URL encoded.
     function buildProxyUrl(innerUrl) {
-    const fullUrl = `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
-    console.log("buildProxyUrl:", fullUrl);
-    return fullUrl;
+    return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
     }
-
 
     function sendCommand(cmd) {
     const PAN_SPEED = document.getElementById("panSpeed").value;
@@ -413,13 +411,15 @@
         command = cmd;
         break;
     }
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+    // Use "=" after ptzcmd
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=${command}`))
+        .then(response => response.text())
+        .then(text => console.log("Command response:", text))
         .catch((err) => console.error("Command error:", err));
     }
 
     function sendHomeCommand() {
-    console.log("sendHomeCommand triggered");
-    fetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
+    fetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd=home"))
         .then(response => response.text())
         .then(text => console.log("Home command response:", text))
         .catch(err => console.error("Home command error:", err));
@@ -427,8 +427,7 @@
 
     function preset(action, pos) {
     const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
-    console.log("preset triggered, command:", command);
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=${command}`))
         .then(response => response.text())
         .then(text => console.log("Preset response:", text))
         .catch(err => console.error("Preset error:", err));
@@ -436,8 +435,7 @@
 
     function zoomIn() {
     const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-    console.log("zoomIn triggered, speed:", ZOOM_SPEED);
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=zoomin&${ZOOM_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("ZoomIn response:", text))
         .catch(err => console.error("ZoomIn error:", err));
@@ -445,8 +443,7 @@
 
     function zoomOut() {
     const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-    console.log("zoomOut triggered, speed:", ZOOM_SPEED);
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=zoomout&${ZOOM_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("ZoomOut response:", text))
         .catch(err => console.error("ZoomOut error:", err));
@@ -454,8 +451,7 @@
 
     function focusIn() {
     const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-    console.log("focusIn triggered, speed:", FOCUS_SPEED);
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=focusin&${FOCUS_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("FocusIn response:", text))
         .catch(err => console.error("FocusIn error:", err));
@@ -463,8 +459,7 @@
 
     function focusOut() {
     const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-    console.log("focusOut triggered, speed:", FOCUS_SPEED);
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=focusout&${FOCUS_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("FocusOut response:", text))
         .catch(err => console.error("FocusOut error:", err));
@@ -473,16 +468,16 @@
     function sendStopCommands() {
     const panSpeed = 1;
     const tiltSpeed = 1;
-    console.log("sendStopCommands triggered");
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=ptzstop&${panSpeed}&${tiltSpeed}`))
         .then(response => response.text())
         .then(text => console.log("Stop command response:", text))
         .catch(err => console.error("Stop command error:", err));
-    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
+    fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd=zoomstop`))
         .then(response => response.text())
         .then(text => console.log("Zoom stop response:", text))
         .catch(err => console.error("Zoom stop error:", err));
     }
+
 
 
 
