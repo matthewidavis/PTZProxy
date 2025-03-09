@@ -417,8 +417,12 @@
     }
 
     function sendHomeCommand() {
-    fetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"));
+    fetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
+        .then(response => response.text())
+        .then(text => console.log("Home command response:", text))
+        .catch(err => console.error("Home command error:", err));
     }
+
 
     function preset(action, pos) {
     const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
