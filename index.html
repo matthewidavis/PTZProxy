@@ -302,8 +302,14 @@
 
     // Function to get the current proxy URL from the input field
     function getProxyUrl() {
-      return document.getElementById("proxyUrlInput").value;
-    }
+        let url = document.getElementById("proxyUrlInput").value;
+        // Remove trailing slash if present
+        if(url.endsWith("/")) {
+            url = url.slice(0, -1);
+        }
+        return url;
+        }
+
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("deviceSelect").addEventListener("change", (e) => {
