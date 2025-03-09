@@ -88,10 +88,23 @@
       flex: 0 0 30%;
       margin: 5px;
     }
+    /* Proxy URL entry styling */
+    #proxy-entry {
+      margin-bottom: 20px;
+    }
+    #proxy-entry input {
+      width: 300px;
+    }
   </style>
 </head>
 <body>
   <div id="container">
+    <!-- Proxy URL Entry -->
+    <div id="proxy-entry" class="section">
+      <label for="proxyUrlInput">Proxy URL:</label>
+      <input type="text" id="proxyUrlInput" value="https://8b12-71-225-123-228.ngrok-free.app" />
+    </div>
+
     <!-- Connection Section: device selection instead of manual IP input -->
     <div class="section" id="connection-section">
       <label for="deviceSelect">Select Device:</label>
@@ -278,8 +291,7 @@
   </div>
 
   <script>
-    // Global variables for proxy usage
-    const proxyUrl = "https://b84b-71-225-123-228.ngrok-free.app";
+    // Global variables for proxy usage are now retrieved dynamically
     let defaultDevice = "camera1"; // Updated via dropdown selection
     let isConnected = false;
     let frameInterval;
@@ -287,6 +299,11 @@
     let FRAME_RATE = 1000 / DEFAULT_FPS;
     let currentTransform = "";
     let currentRotationDegree = 0;
+
+    // Function to get the current proxy URL from the input field
+    function getProxyUrl() {
+      return document.getElementById("proxyUrlInput").value;
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("deviceSelect").addEventListener("change", (e) => {
@@ -297,9 +314,9 @@
       document.getElementById("motionSync").addEventListener("change", handleMotionSyncChange);
       document.getElementById("enableTracking").addEventListener("change", function () {
         if (this.checked) {
-          fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&on`);
+          fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&on`);
         } else {
-          fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&off`);
+          fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&off`);
         }
       });
     });
@@ -316,8 +333,8 @@
     function handleMotionSyncChange(event) {
       const isChecked = event.target.checked;
       const commandUrl = isChecked
-          ? `${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&2`
-          : `${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&3`;
+          ? `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&2`
+          : `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&3`;
       fetch(commandUrl);
     }
 
@@ -345,7 +362,7 @@
     function fetchCameraFrame() {
       const cameraFeed = document.getElementById("camera-feed");
       // Append timestamp to avoid caching
-      cameraFeed.src = `${proxyUrl}/proxy/snapshot?device=${defaultDevice}&timestamp=${new Date().getTime()}`;
+      cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${new Date().getTime()}`;
     }
 
     function sendCommand(cmd) {
@@ -384,17 +401,17 @@
           command = cmd;
           break;
       }
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`)
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`)
         .catch((err) => console.error("Command error:", err));
     }
 
     function sendHomeCommand() {
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&home`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&home`);
     }
 
     function preset(action, pos) {
       const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`);
     }
 
     function savepresetFromInput() {
@@ -417,29 +434,29 @@
 
     function zoomIn() {
       const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`);
     }
 
     function zoomOut() {
       const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`);
     }
 
     function focusIn() {
       const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`);
     }
 
     function focusOut() {
       const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`);
     }
 
     function sendStopCommands() {
       const panSpeed = 1;
       const tiltSpeed = 1;
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`);
-      fetch(`${proxyUrl}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`);
+      fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`);
     }
 
     function applyTransform(type) {
