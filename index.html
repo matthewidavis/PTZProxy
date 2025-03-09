@@ -303,8 +303,8 @@
     // Function to get the current proxy URL from the input field
     function getProxyUrl() {
         let url = document.getElementById("proxyUrlInput").value;
-        // Remove trailing slash if present
-        if(url.endsWith("/")) {
+        // Remove any trailing slash if present
+        if (url.endsWith("/")) {
             url = url.slice(0, -1);
         }
         return url;
@@ -376,7 +376,6 @@
     return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
     }
 
-    // Updated sendCommand function:
     function sendCommand(cmd) {
     const PAN_SPEED = document.getElementById("panSpeed").value;
     const TILT_SPEED = document.getElementById("tiltSpeed").value;
@@ -417,48 +416,42 @@
         .catch((err) => console.error("Command error:", err));
     }
 
-    // Updated sendHomeCommand:
     function sendHomeCommand() {
     fetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"));
     }
 
-    // Updated preset function:
     function preset(action, pos) {
     const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`));
     }
 
-    // Updated zoomIn:
     function zoomIn() {
     const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`));
     }
 
-    // Updated zoomOut:
     function zoomOut() {
     const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`));
     }
 
-    // Updated focusIn:
     function focusIn() {
     const FOCUS_SPEED = document.getElementById("focusSpeed").value;
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`));
     }
 
-    // Updated focusOut:
     function focusOut() {
     const FOCUS_SPEED = document.getElementById("focusSpeed").value;
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`));
     }
 
-    // Updated sendStopCommands:
     function sendStopCommands() {
     const panSpeed = 1;
     const tiltSpeed = 1;
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`));
     fetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`));
     }
+
 
 
     function applyTransform(type) {
