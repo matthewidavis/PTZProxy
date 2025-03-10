@@ -58,7 +58,3 @@ Example command URL:
 **Web Interface**  
 ![Web Interface](https://github.com/user-attachments/assets/02ebdf02-af98-4928-8047-72c810e25bde)
 
-
-## License
-
-This project is open-source under the MIT License.
