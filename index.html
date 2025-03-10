@@ -381,9 +381,7 @@
 
     // Helper: builds the full proxy URL with the inner URL encoded.
     function buildProxyUrl(innerUrl) {
-    const fullUrl = `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
-    console.log("buildProxyUrl:", fullUrl);
-    return fullUrl;
+    return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
     }
 
     function sendCommand(cmd) {
