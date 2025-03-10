@@ -11,22 +11,6 @@ A FastAPI-based proxy server with a desktop GUI (Tkinter) and a web interface to
   - **Device Management**: Manage LAN device configurations.
 - **Web Interface**: A browser-based control panel for live camera preview and PTZ control.
 
-## API Adjustments
-
-### Snapshot Requests
-- The snapshot endpoint adds the header `ngrok-skip-browser-warning: true` to bypass ngrok’s browser warning.
-- The snapshot is served using a `stream=True` request, and the response includes the header `"Cache-Control": "no-store"`.
-
-Example code snippet:
-```python
-headers = {"Cache-Control": "no-store", "ngrok-skip-browser-warning": "true"}
-return Response(
-    content=response.content,
-    media_type="image/jpeg",
-    headers=headers
-)
-```
-
 ### Control Commands
 - PTZ commands (e.g., pan, tilt, zoom, preset) are formatted to match the camera’s standard API.
 - The URL construction uses URL encoding to embed the PTZ command parameters properly.
