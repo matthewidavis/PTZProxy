@@ -14,7 +14,7 @@
       padding: 20px;
       text-align: center;
     }
-    main#main-content {
+    #container {
       max-width: 900px;
       margin: 0 auto;
       background-color: #333;
@@ -46,30 +46,26 @@
     button:hover {
       background-color: #0056b3;
     }
-
-    /* Camera feed image */
     #camera-feed {
-      width: 100%;
-      height: 100%;
-      max-height: 400px; /* Adjust as needed */
-      border: 2px solid #555;
-      margin-top: 20px;
-      object-fit: contain;
-      transition: transform 0.3s;
+    width: 100%;
+    height: 100%;
+    max-height: 400px; /* adjust as needed */
+    border: 2px solid #555;
+    margin-top: 20px;
+    object-fit: contain;
     }
+
 
     /* Section layout */
     .section {
       margin: 20px 0;
     }
-
     /* Image orientation controls */
     #image-orientation {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
     }
-
     /* Pan-Tilt grid */
     #pan-tilt-controls {
       display: grid;
@@ -78,7 +74,6 @@
       max-width: 400px;
       margin: 0 auto;
     }
-
     /* Speed and options layout */
     #speed-controls,
     #controls > div,
@@ -88,7 +83,6 @@
       align-items: center;
       flex-wrap: wrap;
     }
-
     #preset-buttons {
       display: flex;
       flex-wrap: wrap;
@@ -98,7 +92,6 @@
       flex: 0 0 30%;
       margin: 5px;
     }
-
     /* Proxy URL entry styling */
     #proxy-entry {
       margin-bottom: 20px;
@@ -109,15 +102,15 @@
   </style>
 </head>
 <body>
-  <main id="main-content">
+  <div id="container">
     <!-- Proxy URL Entry -->
-    <section id="proxy-entry" class="section">
+    <div id="proxy-entry" class="section">
       <label for="proxyUrlInput">Proxy URL:</label>
       <input type="text" id="proxyUrlInput" value="https://8b12-71-225-123-228.ngrok-free.app" />
-    </section>
+    </div>
 
-    <!-- Connection Section -->
-    <section class="section" id="connection-section">
+    <!-- Connection Section: device selection instead of manual IP input -->
+    <div class="section" id="connection-section">
       <label for="deviceSelect">Select Device:</label>
       <select id="deviceSelect">
         <option value="camera1" selected>Camera 1</option>
@@ -125,77 +118,85 @@
         <option value="controller">Controller</option>
       </select>
       <button id="connectionToggle">CONNECT</button>
-    </section>
+    </div>
 
     <!-- Camera Feed -->
-    <img
-      id="camera-feed"
-      src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png"
-      alt="Camera Feed"
-    />
+    <img id="camera-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera Feed" />
 
     <!-- Image Orientation Controls -->
-    <section class="section" id="image-orientation">
+    <div class="section" id="image-orientation">
       <button onclick="applyTransform('rotate')">Rotate 90°</button>
       <button onclick="applyTransform('flipH')">Flip Horizontally</button>
       <button onclick="applyTransform('flipV')">Flip Vertically</button>
       <button onclick="applyTransform('default')">Default</button>
-    </section>
+    </div>
 
     <!-- Pan-Tilt Controls -->
-    <section class="section" id="pan-tilt-controls">
-      <button 
-        onmousedown="sendCommand('upleft')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Tilt Up + Pan Left">&#8598;</button>
-      <button 
-        onmousedown="sendCommand('up')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Tilt Up">&#8593;</button>
-      <button 
-        onmousedown="sendCommand('upright')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Tilt Up + Pan Right">&#8599;</button>
-      <button 
-        onmousedown="sendCommand('left')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Pan Left">&#8592;</button>
-      <button onclick="sendHomeCommand()" title="Move Camera Home">HOME</button>
-      <button 
-        onmousedown="sendCommand('right')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Pan Right">&#8594;</button>
-      <button 
-        onmousedown="sendCommand('downleft')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Tilt Down + Pan Left">&#8601;</button>
-      <button 
-        onmousedown="sendCommand('down')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Tilt Down">&#8595;</button>
-      <button 
-        onmousedown="sendCommand('downright')" 
-        onmouseup="sendCommand('ptzstop')" 
-        title="Tilt Down + Pan Right">&#8600;</button>
-    </section>
+    <div class="section" id="pan-tilt-controls">
+      <button onmousedown="sendCommand('upleft')" onmouseup="sendCommand('ptzstop')">&#8598;</button>
+      <button onmousedown="sendCommand('up')" onmouseup="sendCommand('ptzstop')">&#8593;</button>
+      <button onmousedown="sendCommand('upright')" onmouseup="sendCommand('ptzstop')">&#8599;</button>
+      <button onmousedown="sendCommand('left')" onmouseup="sendCommand('ptzstop')">&#8592;</button>
+      <button onclick="sendHomeCommand()">HOME</button>
+      <button onmousedown="sendCommand('right')" onmouseup="sendCommand('ptzstop')">&#8594;</button>
+      <button onmousedown="sendCommand('downleft')" onmouseup="sendCommand('ptzstop')">&#8601;</button>
+      <button onmousedown="sendCommand('down')" onmouseup="sendCommand('ptzstop')">&#8595;</button>
+      <button onmousedown="sendCommand('downright')" onmouseup="sendCommand('ptzstop')">&#8600;</button>
+    </div>
 
     <!-- Pan/Tilt Speed and Options -->
-    <section class="section" id="speed-controls">
+    <div class="section" id="speed-controls">
       <div>
         <label for="panSpeed">Pan Speed:</label>
         <select id="panSpeed">
-          <!-- Values 1–24 -->
           <option value="1">1</option>
-          <!-- snip same pattern for brevity -->
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
+          <option value="20">20</option>
+          <option value="21">21</option>
+          <option value="22">22</option>
+          <option value="23">23</option>
           <option value="24">24</option>
         </select>
       </div>
       <div>
         <label for="tiltSpeed">Tilt Speed:</label>
         <select id="tiltSpeed">
-          <!-- Values 1–20 -->
           <option value="1">1</option>
-          <!-- snip same pattern for brevity -->
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
           <option value="20">20</option>
         </select>
       </div>
@@ -207,10 +208,10 @@
         <label for="enableTracking">Tracking:</label>
         <input type="checkbox" id="enableTracking" />
       </div>
-    </section>
+    </div>
 
     <!-- Zoom and Focus Controls -->
-    <section class="section" id="controls">
+    <div class="section" id="controls">
       <div>
         <button onmousedown="zoomIn()" onmouseup="sendStopCommands()">Zoom In</button>
         <button onmousedown="zoomOut()" onmouseup="sendStopCommands()">Zoom Out</button>
@@ -222,20 +223,28 @@
         <label for="zoomSpeed">Zoom Speed:</label>
         <select id="zoomSpeed">
           <option value="1">1</option>
-          <!-- up to 7, as in your code -->
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
           <option value="7">7</option>
         </select>
         <label for="focusSpeed">Focus Speed:</label>
         <select id="focusSpeed">
           <option value="1">1</option>
-          <!-- up to 7, as in your code -->
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
           <option value="7">7</option>
         </select>
       </div>
-    </section>
+    </div>
 
     <!-- Presets and FPS -->
-    <section class="section" id="presets-container">
+    <div class="section" id="presets-container">
       <div id="preset-buttons">
         <button onclick="preset('recall', 1)">Preset 1</button>
         <button onclick="preset('recall', 2)">Preset 2</button>
@@ -251,15 +260,41 @@
         <label for="fpsSelect">FPS:</label>
         <select id="fpsSelect">
           <option value="1">1</option>
-          <!-- up to 30, as in your code -->
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7" selected>7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
+          <option value="20">20</option>
+          <option value="21">21</option>
+          <option value="22">22</option>
+          <option value="23">23</option>
+          <option value="24">24</option>
+          <option value="25">25</option>
+          <option value="26">26</option>
+          <option value="27">27</option>
+          <option value="28">28</option>
+          <option value="29">29</option>
           <option value="30">30</option>
         </select>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <!-- Defer ensures script executes after parsing HTML/DOM -->
-  <script defer>
+  <script>
     // Global variables for proxy usage are now retrieved dynamically
     let defaultDevice = "camera1"; // Updated via dropdown selection
     let isConnected = false;
@@ -268,6 +303,8 @@
     let FRAME_RATE = 1000 / DEFAULT_FPS;
     let currentTransform = "";
     let currentRotationDegree = 0;
+
+
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("deviceSelect").addEventListener("change", (e) => {
@@ -323,138 +360,141 @@
       clearInterval(frameInterval);
     }
 
+
     function fetchCameraFrame() {
-      const cameraFeed = document.getElementById("camera-feed");
-      const timestamp = new Date().getTime();
-      cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
+        const cameraFeed = document.getElementById("camera-feed");
+        const timestamp = new Date().getTime();
+        // Append a query parameter for ngrok to skip the browser warning
+        cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
     }
 
+
     function getProxyUrl() {
-      let url = document.getElementById("proxyUrlInput").value;
-      if (url.endsWith("/")) {
+    let url = document.getElementById("proxyUrlInput").value;
+    if (url.endsWith("/")) {
         url = url.slice(0, -1);
-      }
-      return url;
+    }
+    return url;
     }
 
     // Helper function that adds the ngrok header so that ngrok skips its browser warning.
     function myFetch(url, options = {}) {
-      options.headers = {
+    options.headers = {
         "ngrok-skip-browser-warning": "true",
         ...options.headers,
-      };
-      return fetch(url, options);
+    };
+    return fetch(url, options);
     }
 
     // Helper: builds the full proxy URL with the inner URL encoded.
     function buildProxyUrl(innerUrl) {
-      return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
+    return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
     }
 
     function sendCommand(cmd) {
-      const PAN_SPEED = document.getElementById("panSpeed").value;
-      const TILT_SPEED = document.getElementById("tiltSpeed").value;
-      let command;
-      switch (cmd) {
+    const PAN_SPEED = document.getElementById("panSpeed").value;
+    const TILT_SPEED = document.getElementById("tiltSpeed").value;
+    let command;
+    switch (cmd) {
         case "up":
-          command = `up&${TILT_SPEED}`;
-          break;
+        command = `up&${TILT_SPEED}`;
+        break;
         case "down":
-          command = `down&${TILT_SPEED}`;
-          break;
+        command = `down&${TILT_SPEED}`;
+        break;
         case "left":
-          command = `left&${PAN_SPEED}`;
-          break;
+        command = `left&${PAN_SPEED}`;
+        break;
         case "right":
-          command = `right&${PAN_SPEED}`;
-          break;
+        command = `right&${PAN_SPEED}`;
+        break;
         case "upleft":
-          command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "upright":
-          command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "downleft":
-          command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "downright":
-          command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
-          break;
+        command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
+        break;
         case "ptzstop":
-          command = `ptzstop`;
-          break;
+        command = `ptzstop`;
+        break;
         default:
-          command = cmd;
-          break;
-      }
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+        command = cmd;
+        break;
+    }
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
         .then(response => response.text())
         .then(text => console.log("Command response:", text))
         .catch(err => console.error("Command error:", err));
     }
 
     function sendHomeCommand() {
-      console.log("sendHomeCommand triggered");
-      myFetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
+    console.log("sendHomeCommand triggered");
+    myFetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
         .then(response => response.text())
         .then(text => console.log("Home command response:", text))
         .catch(err => console.error("Home command error:", err));
     }
 
     function preset(action, pos) {
-      const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
-      console.log("preset triggered, command:", command);
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+    const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
+    console.log("preset triggered, command:", command);
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
         .then(response => response.text())
         .then(text => console.log("Preset response:", text))
         .catch(err => console.error("Preset error:", err));
     }
 
     function zoomIn() {
-      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-      console.log("zoomIn triggered, speed:", ZOOM_SPEED);
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`))
+    const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+    console.log("zoomIn triggered, speed:", ZOOM_SPEED);
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("ZoomIn response:", text))
         .catch(err => console.error("ZoomIn error:", err));
     }
 
     function zoomOut() {
-      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-      console.log("zoomOut triggered, speed:", ZOOM_SPEED);
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`))
+    const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+    console.log("zoomOut triggered, speed:", ZOOM_SPEED);
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("ZoomOut response:", text))
         .catch(err => console.error("ZoomOut error:", err));
     }
 
     function focusIn() {
-      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-      console.log("focusIn triggered, speed:", FOCUS_SPEED);
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`))
+    const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+    console.log("focusIn triggered, speed:", FOCUS_SPEED);
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("FocusIn response:", text))
         .catch(err => console.error("FocusIn error:", err));
     }
 
     function focusOut() {
-      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-      console.log("focusOut triggered, speed:", FOCUS_SPEED);
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`))
+    const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+    console.log("focusOut triggered, speed:", FOCUS_SPEED);
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("FocusOut response:", text))
         .catch(err => console.error("FocusOut error:", err));
     }
 
     function sendStopCommands() {
-      const panSpeed = 1;
-      const tiltSpeed = 1;
-      console.log("sendStopCommands triggered");
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`))
+    const panSpeed = 1;
+    const tiltSpeed = 1;
+    console.log("sendStopCommands triggered");
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`))
         .then(response => response.text())
         .then(text => console.log("Stop command response:", text))
         .catch(err => console.error("Stop command error:", err));
-      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
+    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
         .then(response => response.text())
         .then(text => console.log("Zoom stop response:", text))
         .catch(err => console.error("Zoom stop error:", err));
@@ -472,7 +512,7 @@
           } else {
             scaleFactor = 1 / aspectRatio;
           }
-          currentTransform = `rotate(${currentRotationDegree}deg) scale(${scaleFactor})`;
+          currentTransform = "rotate(" + currentRotationDegree + "deg) scale(" + scaleFactor + ")";
           cameraFeed.style.transformOrigin = "center";
           break;
         case "flipH":
