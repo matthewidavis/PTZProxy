@@ -47,14 +47,13 @@
       background-color: #0056b3;
     }
     #camera-feed {
-    width: 100%;
-    height: 100%;
-    max-height: 400px; /* adjust as needed */
-    border: 2px solid #555;
-    margin-top: 20px;
-    object-fit: contain;
+      width: 100%;
+      height: 100%;
+      max-height: 400px; /* adjust as needed */
+      border: 2px solid #555;
+      margin-top: 20px;
+      object-fit: contain;
     }
-
 
     /* Section layout */
     .section {
@@ -304,8 +303,6 @@
     let currentTransform = "";
     let currentRotationDegree = 0;
 
-
-
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("deviceSelect").addEventListener("change", (e) => {
         defaultDevice = e.target.value;
@@ -313,6 +310,8 @@
       document.getElementById("connectionToggle").addEventListener("click", toggleConnection);
       document.getElementById("fpsSelect").addEventListener("change", handleFpsChange);
       document.getElementById("motionSync").addEventListener("change", handleMotionSyncChange);
+
+      // Tracking checkbox toggles
       document.getElementById("enableTracking").addEventListener("change", function () {
         if (this.checked) {
           fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&on`);
@@ -334,8 +333,8 @@
     function handleMotionSyncChange(event) {
       const isChecked = event.target.checked;
       const commandUrl = isChecked
-          ? `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&2`
-          : `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&3`;
+        ? `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&2`
+        : `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/ptzctrl.cgi?post_image_value&motionsync&3`;
       fetch(commandUrl);
     }
 
@@ -347,6 +346,7 @@
       } else {
         stopLivePreview();
         toggleButton.textContent = "CONNECT";
+        // Reset to a placeholder image
         document.getElementById("camera-feed").src = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
       }
       isConnected = !isConnected;
@@ -360,141 +360,157 @@
       clearInterval(frameInterval);
     }
 
-
+    // -- Updated fetchCameraFrame with Pre-Loading --
     function fetchCameraFrame() {
-        const cameraFeed = document.getElementById("camera-feed");
-        const timestamp = new Date().getTime();
-        // Append a query parameter for ngrok to skip the browser warning
-        cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
-    }
+      const cameraFeed = document.getElementById("camera-feed");
+      const timestamp = Date.now();
+      // Force a fresh request so caching doesn't cause stale frames
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
 
+      // Preload in a temporary image object
+      const tempImg = new Image();
+
+      tempImg.onload = function () {
+        // Only set the camera-feed src AFTER it's fully loaded
+        cameraFeed.src = newSrc;
+      };
+
+      tempImg.onerror = function (err) {
+        console.error("Snapshot load failed:", err);
+        // Optionally re-try after a delay:
+        // setTimeout(fetchCameraFrame, 2000);
+      };
+
+      // Start loading in the background
+      tempImg.src = newSrc;
+    }
 
     function getProxyUrl() {
-    let url = document.getElementById("proxyUrlInput").value;
-    if (url.endsWith("/")) {
+      let url = document.getElementById("proxyUrlInput").value;
+      if (url.endsWith("/")) {
         url = url.slice(0, -1);
-    }
-    return url;
+      }
+      return url;
     }
 
-    // Helper function that adds the ngrok header so that ngrok skips its browser warning.
+    // Helper function that adds the ngrok header so that ngrok skips its browser warning
     function myFetch(url, options = {}) {
-    options.headers = {
+      options.headers = {
         "ngrok-skip-browser-warning": "true",
         ...options.headers,
-    };
-    return fetch(url, options);
+      };
+      return fetch(url, options);
     }
 
-    // Helper: builds the full proxy URL with the inner URL encoded.
+    // Helper: builds the full proxy URL with the inner URL encoded
     function buildProxyUrl(innerUrl) {
-    return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
+      return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
     }
 
     function sendCommand(cmd) {
-    const PAN_SPEED = document.getElementById("panSpeed").value;
-    const TILT_SPEED = document.getElementById("tiltSpeed").value;
-    let command;
-    switch (cmd) {
+      const PAN_SPEED = document.getElementById("panSpeed").value;
+      const TILT_SPEED = document.getElementById("tiltSpeed").value;
+      let command;
+      switch (cmd) {
         case "up":
-        command = `up&${TILT_SPEED}`;
-        break;
+          command = `up&${TILT_SPEED}`;
+          break;
         case "down":
-        command = `down&${TILT_SPEED}`;
-        break;
+          command = `down&${TILT_SPEED}`;
+          break;
         case "left":
-        command = `left&${PAN_SPEED}`;
-        break;
+          command = `left&${PAN_SPEED}`;
+          break;
         case "right":
-        command = `right&${PAN_SPEED}`;
-        break;
+          command = `right&${PAN_SPEED}`;
+          break;
         case "upleft":
-        command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
-        break;
+          command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
         case "upright":
-        command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
-        break;
+          command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
         case "downleft":
-        command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
-        break;
+          command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
         case "downright":
-        command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
-        break;
+          command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
         case "ptzstop":
-        command = `ptzstop`;
-        break;
+          command = `ptzstop`;
+          break;
         default:
-        command = cmd;
-        break;
-    }
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+          command = cmd;
+          break;
+      }
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
         .then(response => response.text())
         .then(text => console.log("Command response:", text))
         .catch(err => console.error("Command error:", err));
     }
 
     function sendHomeCommand() {
-    console.log("sendHomeCommand triggered");
-    myFetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
+      console.log("sendHomeCommand triggered");
+      myFetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
         .then(response => response.text())
         .then(text => console.log("Home command response:", text))
         .catch(err => console.error("Home command error:", err));
     }
 
     function preset(action, pos) {
-    const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
-    console.log("preset triggered, command:", command);
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+      const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
+      console.log("preset triggered, command:", command);
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
         .then(response => response.text())
         .then(text => console.log("Preset response:", text))
         .catch(err => console.error("Preset error:", err));
     }
 
     function zoomIn() {
-    const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-    console.log("zoomIn triggered, speed:", ZOOM_SPEED);
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`))
+      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+      console.log("zoomIn triggered, speed:", ZOOM_SPEED);
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("ZoomIn response:", text))
         .catch(err => console.error("ZoomIn error:", err));
     }
 
     function zoomOut() {
-    const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
-    console.log("zoomOut triggered, speed:", ZOOM_SPEED);
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`))
+      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+      console.log("zoomOut triggered, speed:", ZOOM_SPEED);
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("ZoomOut response:", text))
         .catch(err => console.error("ZoomOut error:", err));
     }
 
     function focusIn() {
-    const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-    console.log("focusIn triggered, speed:", FOCUS_SPEED);
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`))
+      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+      console.log("focusIn triggered, speed:", FOCUS_SPEED);
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("FocusIn response:", text))
         .catch(err => console.error("FocusIn error:", err));
     }
 
     function focusOut() {
-    const FOCUS_SPEED = document.getElementById("focusSpeed").value;
-    console.log("focusOut triggered, speed:", FOCUS_SPEED);
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`))
+      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+      console.log("focusOut triggered, speed:", FOCUS_SPEED);
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`))
         .then(response => response.text())
         .then(text => console.log("FocusOut response:", text))
         .catch(err => console.error("FocusOut error:", err));
     }
 
     function sendStopCommands() {
-    const panSpeed = 1;
-    const tiltSpeed = 1;
-    console.log("sendStopCommands triggered");
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`))
+      const panSpeed = 1;
+      const tiltSpeed = 1;
+      console.log("sendStopCommands triggered");
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&${panSpeed}&${tiltSpeed}`))
         .then(response => response.text())
         .then(text => console.log("Stop command response:", text))
         .catch(err => console.error("Stop command error:", err));
-    myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
         .then(response => response.text())
         .then(text => console.log("Zoom stop response:", text))
         .catch(err => console.error("Zoom stop error:", err));
@@ -512,7 +528,7 @@
           } else {
             scaleFactor = 1 / aspectRatio;
           }
-          currentTransform = "rotate(" + currentRotationDegree + "deg) scale(" + scaleFactor + ")";
+          currentTransform = `rotate(${currentRotationDegree}deg) scale(${scaleFactor})`;
           cameraFeed.style.transformOrigin = "center";
           break;
         case "flipH":
