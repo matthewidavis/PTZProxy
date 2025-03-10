@@ -54,6 +54,13 @@
       margin-top: 20px;
       object-fit: contain;
     }
+    #hlsVideo {
+      width: 100%;
+      max-height: 400px;
+      border: 2px solid #555;
+      margin-top: 20px;
+      display: none; /* hidden by default */
+    }
 
     /* Section layout */
     .section {
@@ -116,11 +123,17 @@
         <option value="camera2">Camera 2</option>
         <option value="controller">Controller</option>
       </select>
-      <button id="connectionToggle">CONNECT</button>
+      <button id="connectionToggle">CONNECT (Snapshots)</button>
+      <!-- New buttons for HLS streaming -->
+      <button onclick="startHlsStream()">Start HLS</button>
+      <button onclick="stopHlsStream()">Stop HLS</button>
     </div>
 
-    <!-- Camera Feed -->
+    <!-- Snapshot-based feed (IMG) -->
     <img id="camera-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera Feed" />
+
+    <!-- HLS-based feed (VIDEO) -->
+    <video id="hlsVideo" controls autoplay playsinline></video>
 
     <!-- Image Orientation Controls -->
     <div class="section" id="image-orientation">
@@ -293,8 +306,9 @@
     </div>
   </div>
 
+  <!-- hls.js needed for many desktop browsers to play HLS -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    // Global variables for proxy usage are now retrieved dynamically
     let defaultDevice = "camera1"; // Updated via dropdown selection
     let isConnected = false;
     let frameInterval;
@@ -321,6 +335,51 @@
       });
     });
 
+    /**************************************************************************
+     * HLS Streaming Functions
+     **************************************************************************/
+    function startHlsStream() {
+      // 1. Tell the server to start ffmpeg for this device
+      fetch(`${getProxyUrl()}/proxy/hls/start?device=${defaultDevice}`)
+        .then(r => r.json())
+        .then(data => {
+          console.log("HLS started:", data);
+          // 2. Once started, set up the <video> to load /proxy/hls/playlist.m3u8
+          const videoEl = document.getElementById("hlsVideo");
+          // Show the video, hide the snapshot feed
+          videoEl.style.display = "block";
+          document.getElementById("camera-feed").style.display = "none";
+
+          const hlsUrl = `${getProxyUrl()}/proxy/hls/playlist.m3u8`;
+
+          // 3. Use hls.js if supported, else try native HLS (Safari, iOS, etc.)
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(hlsUrl);
+            hls.attachMedia(videoEl);
+          } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+            // Safari, iOS, etc.
+            videoEl.src = hlsUrl;
+          } else {
+            alert("This browser does not support HLS natively or via hls.js!");
+          }
+        })
+        .catch(err => console.error("Could not start HLS:", err));
+    }
+
+    function stopHlsStream() {
+      // 1. Hide <video> and pause it
+      const videoEl = document.getElementById("hlsVideo");
+      videoEl.pause();
+      videoEl.style.display = "none";
+      // 2. Show the snapshot feed again (if desired)
+      document.getElementById("camera-feed").style.display = "block";
+      // (Optionally you can make a route to kill ffmpeg, but not strictly required.)
+    }
+
+    /**************************************************************************
+     * Snapshot-based approach
+     **************************************************************************/
     function handleFpsChange(event) {
       const selectedFps = parseInt(event.target.value, 10);
       FRAME_RATE = 1000 / selectedFps;
@@ -342,17 +401,22 @@
       const toggleButton = document.getElementById("connectionToggle");
       if (!isConnected) {
         startLivePreview();
-        toggleButton.textContent = "DISCONNECT";
+        toggleButton.textContent = "DISCONNECT (Snapshots)";
       } else {
         stopLivePreview();
-        toggleButton.textContent = "CONNECT";
+        toggleButton.textContent = "CONNECT (Snapshots)";
         // Reset to a placeholder image
-        document.getElementById("camera-feed").src = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
+        const feed = document.getElementById("camera-feed");
+        feed.src = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
       }
       isConnected = !isConnected;
     }
 
     function startLivePreview() {
+      // Show the snapshot feed (IMG), hide the HLS <video> if open
+      document.getElementById("camera-feed").style.display = "block";
+      document.getElementById("hlsVideo").style.display = "none";
+
       frameInterval = setInterval(fetchCameraFrame, FRAME_RATE);
     }
 
@@ -360,31 +424,24 @@
       clearInterval(frameInterval);
     }
 
-    // -- Updated fetchCameraFrame with Pre-Loading --
     function fetchCameraFrame() {
       const cameraFeed = document.getElementById("camera-feed");
       const timestamp = Date.now();
-      // Force a fresh request so caching doesn't cause stale frames
       const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
 
-      // Preload in a temporary image object
       const tempImg = new Image();
-
       tempImg.onload = function () {
-        // Only set the camera-feed src AFTER it's fully loaded
         cameraFeed.src = newSrc;
       };
-
       tempImg.onerror = function (err) {
         console.error("Snapshot load failed:", err);
-        // Optionally re-try after a delay:
-        // setTimeout(fetchCameraFrame, 2000);
       };
-
-      // Start loading in the background
       tempImg.src = newSrc;
     }
 
+    /**************************************************************************
+     * Utility / PTZ Commands
+     **************************************************************************/
     function getProxyUrl() {
       let url = document.getElementById("proxyUrlInput").value;
       if (url.endsWith("/")) {
@@ -393,7 +450,6 @@
       return url;
     }
 
-    // Helper function that adds the ngrok header so that ngrok skips its browser warning
     function myFetch(url, options = {}) {
       options.headers = {
         "ngrok-skip-browser-warning": "true",
@@ -402,7 +458,6 @@
       return fetch(url, options);
     }
 
-    // Helper: builds the full proxy URL with the inner URL encoded
     function buildProxyUrl(innerUrl) {
       return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
     }
@@ -510,6 +565,7 @@
         .then(response => response.text())
         .then(text => console.log("Stop command response:", text))
         .catch(err => console.error("Stop command error:", err));
+
       myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
         .then(response => response.text())
         .then(text => console.log("Zoom stop response:", text))
