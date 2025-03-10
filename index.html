@@ -47,11 +47,14 @@
       background-color: #0056b3;
     }
     #camera-feed {
-      width: 100%;
-      max-height: 400px;
-      border: 2px solid #555;
-      margin-top: 20px;
+        width: 100%;
+        max-height: 400px;
+        border: 2px solid #555;
+        margin-top: 20px;
+        object-fit: contain;  /* Keeps aspect ratio and fits image inside */
+        height: auto;         /* Ensures height adjusts automatically */
     }
+
     /* Section layout */
     .section {
       margin: 20px 0;
@@ -355,7 +358,7 @@
     function stopLivePreview() {
       clearInterval(frameInterval);
     }
-    
+
 
     function fetchCameraFrame() {
         const cameraFeed = document.getElementById("camera-feed");
