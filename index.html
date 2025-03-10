@@ -355,12 +355,15 @@
     function stopLivePreview() {
       clearInterval(frameInterval);
     }
+    
 
     function fetchCameraFrame() {
-      const cameraFeed = document.getElementById("camera-feed");
-      // Append timestamp to avoid caching
-      cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${new Date().getTime()}`;
+        const cameraFeed = document.getElementById("camera-feed");
+        const timestamp = new Date().getTime();
+        // Append a query parameter for ngrok to skip the browser warning
+        cameraFeed.src = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
     }
+
 
     function getProxyUrl() {
     let url = document.getElementById("proxyUrlInput").value;
