@@ -1,6 +1,6 @@
 # PTZOptics Cloud-Enabled Proxy
 
-A FastAPI-based proxy server with a desktop GUI (Tkinter) and a web interface to remotely control PTZOptics cameras over LAN. This project routes API requests from cloud clients to LAN devices, handling PTZ control commands and camera snapshot requests.
+A FastAPI-based proxy server with a desktop GUI (Tkinter) and a web interface to remotely control PTZOptics cameras over LAN. This project routes API requests from cloud clients to LAN devices, handling PTZ control commands and camera snapshot requests while enabling remote access to the resources once properl set up.
 
 ## Overview
 
