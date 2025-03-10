@@ -4,6 +4,8 @@ from tkinter import ttk, simpledialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response
+from fastapi.middleware.cors import CORSMiddleware
+import urllib.parse
 import requests
 import socket
 import uvicorn
@@ -14,11 +16,20 @@ from pyngrok import ngrok
 # -----------------------------------------------------------------------------
 app = FastAPI()
 
+# Add CORS middleware so that our responses include the proper headers.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust as needed for security
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Default configurations (modifiable via the GUI tables)
-WHITELISTED_ORIGINS = {"https://your-cloud-site.com"}
+WHITELISTED_ORIGINS = {"https://matthewidavis.github.io", "https://matthewidavis.github.io/PTZProxy"}
 ALLOWED_LAN_DEVICES = {
-    "camera1": "192.168.1.100",
-    "camera2": "192.168.1.101",
+    "camera1": "192.168.101.88",
+    "camera2": "192.168.101.231",
     "controller": "192.168.1.200"
 }
 
@@ -39,10 +50,15 @@ def log_message(message):
 # -----------------------------------------------------------------------------
 # FastAPI Middleware & Endpoints
 # -----------------------------------------------------------------------------
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)
+
 @app.middleware("http")
 async def check_origin(request: Request, call_next):
     origin = request.headers.get("origin")
-    if origin not in WHITELISTED_ORIGINS:
+    # Only enforce whitelist if an Origin header exists.
+    if origin is not None and origin not in WHITELISTED_ORIGINS:
         log_message(f"🚫 [BLOCKED] Unauthorized origin: {origin}")
         raise HTTPException(status_code=403, detail="Unauthorized origin")
     return await call_next(request)
@@ -52,14 +68,30 @@ async def proxy_http_get(device: str, url: str):
     if device not in ALLOWED_LAN_DEVICES:
         log_message(f"🚫 [BLOCKED] Unauthorized device: {device}")
         raise HTTPException(status_code=403, detail="Unauthorized device")
-    target_url = f"http://{ALLOWED_LAN_DEVICES[device]}{url}"
+    # Decode the inner URL parameter:
+    decoded_url = urllib.parse.unquote(url)
+    target_url = f"http://{ALLOWED_LAN_DEVICES[device]}{decoded_url}"
+    log_message(f"Fetching target URL: {target_url}")
     try:
-        response = requests.get(target_url)
-        log_message(f"✅ [HTTP] GET {device} -> {url} ({response.status_code})")
-        return response.json()
+        # Disable redirects if the URL is a PTZ command
+        if decoded_url.startswith("/cgi-bin/ptzctrl.cgi"):
+            response = requests.get(target_url, headers={'User-Agent': 'Mozilla/5.0'}, allow_redirects=False)
+        else:
+            response = requests.get(target_url, headers={'User-Agent': 'Mozilla/5.0'}, allow_redirects=True)
+        log_message(f"✅ [HTTP] GET {device} -> {decoded_url} ({response.status_code})")
+        if 300 <= response.status_code < 400:
+            location = response.headers.get('Location', '')
+            log_message(f"Redirect detected: {location}")
+            return Response(content=f"Redirect to: {location}", media_type="text/plain")
+        try:
+            return response.json()
+        except Exception as json_err:
+            log_message(f"⚠️ [WARNING] JSON decode error: {json_err}")
+            return Response(content=response.text, media_type="text/plain")
     except requests.exceptions.RequestException as e:
-        log_message(f"⚠️ [ERROR] HTTP GET {device} -> {url} failed: {str(e)}")
+        log_message(f"⚠️ [ERROR] HTTP GET {device} -> {decoded_url} failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/proxy/http")
 async def proxy_http_post(device: str, url: str, data: dict):
@@ -84,10 +116,18 @@ async def proxy_snapshot(device: str):
     try:
         response = requests.get(target_url, stream=True)
         log_message(f"📸 [SNAPSHOT] Fetched image from {device}")
-        return Response(content=response.content, media_type="image/jpeg")
+        # Add the header so that ngrok skips the browser warning.
+        headers = {"Cache-Control": "no-store", "ngrok-skip-browser-warning": "true"}
+        return Response(
+            content=response.content,
+            media_type="image/jpeg",
+            headers=headers
+        )
     except requests.exceptions.RequestException as e:
         log_message(f"⚠️ [ERROR] Snapshot from {device} failed: {str(e)}")
         return Response(content=str(e), status_code=500)
+
+
 
 @app.post("/proxy/visca")
 async def proxy_visca(device: str, command: str):
@@ -111,10 +151,10 @@ async def proxy_visca(device: str, command: str):
 def start_proxy():
     global server_thread, NGROK_URL, USE_NGROK
     log_message("🚀 Starting Proxy Server...")
-    server_thread = threading.Thread(target=lambda: uvicorn.run(app, host="0.0.0.0", port=5000), daemon=True)
+    server_thread = threading.Thread(target=lambda: uvicorn.run(app, host="0.0.0.0", port=5001), daemon=True)
     server_thread.start()
     if USE_NGROK:
-        public_url = ngrok.connect(5000).public_url
+        public_url = ngrok.connect(5001).public_url
         NGROK_URL = public_url
         log_message(f"🌍 Ngrok URL: {NGROK_URL}")
     start_button.config(state=tk.DISABLED)
