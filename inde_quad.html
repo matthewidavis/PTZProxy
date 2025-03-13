@@ -487,23 +487,27 @@
     function startLivePreview() {
       document.getElementById("camera-feed").style.display = "block";
       document.getElementById("hlsVideo").style.display = "none";
-      frameInterval = setInterval(fetchCameraFrame, FRAME_RATE);
+      fetchCameraFrameChained();
     }
 
     function stopLivePreview() {
       clearInterval(frameInterval);
     }
 
-    function fetchCameraFrame() {
+    function fetchCameraFrameChained() {
       const cameraFeed = document.getElementById("camera-feed");
       const timestamp = Date.now();
       const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
       const tempImg = new Image();
       tempImg.onload = function () {
         cameraFeed.src = newSrc;
+        // Schedule the next frame after the desired frame delay
+        setTimeout(fetchCameraFrameChained, FRAME_RATE);
       };
       tempImg.onerror = function (err) {
         console.error("Snapshot load failed:", err);
+        // Even on error, schedule the next frame to keep the preview updating
+        setTimeout(fetchCameraFrameChained, FRAME_RATE);
       };
       tempImg.src = newSrc;
     }
@@ -523,12 +527,26 @@
     }
 
     function startQuadLivePreview() {
-      quadInterval = setInterval(() => {
-        fetchCameraFrameForDevice('camera1', 'camera-feed-1');
-        fetchCameraFrameForDevice('camera2', 'camera-feed-2');
-        fetchCameraFrameForDevice('camera3', 'camera-feed-3');
-        fetchCameraFrameForDevice('camera4', 'camera-feed-4');
-      }, FRAME_RATE);
+      fetchCameraFrameChainedForDevice('camera1', 'camera-feed-1');
+      fetchCameraFrameChainedForDevice('camera2', 'camera-feed-2');
+      fetchCameraFrameChainedForDevice('camera3', 'camera-feed-3');
+      fetchCameraFrameChainedForDevice('camera4', 'camera-feed-4');
+    }
+
+    function fetchCameraFrameChainedForDevice(device, elementId) {
+      const feedElement = document.getElementById(elementId);
+      const timestamp = Date.now();
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${device}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
+      const tempImg = new Image();
+      tempImg.onload = function () {
+        feedElement.src = newSrc;
+        setTimeout(() => fetchCameraFrameChainedForDevice(device, elementId), FRAME_RATE);
+      };
+      tempImg.onerror = function (err) {
+        console.error(`Snapshot load failed for ${device}:`, err);
+        setTimeout(() => fetchCameraFrameChainedForDevice(device, elementId), FRAME_RATE);
+      };
+      tempImg.src = newSrc;
     }
 
     function stopQuadLivePreview() {
