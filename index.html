@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PTZOptics Camera Control</title>
+  <title>PTZOptics Camera Control - Quad View</title>
   <style>
     /* Basic styling */
     body {
@@ -46,14 +46,17 @@
     button:hover {
       background-color: #0056b3;
     }
+    /* Single view feed */
     #camera-feed {
+      /* Force a 16:9 aspect ratio box, scaled to 100% width */
+      aspect-ratio: 16/9;
       width: 100%;
-      height: 100%;
-      max-height: 400px; /* adjust as needed */
       border: 2px solid #555;
       margin-top: 20px;
       object-fit: contain;
+      background-color: #000; /* helps show letterboxing, optional */
     }
+    /* HLS-based feed (VIDEO) */
     #hlsVideo {
       width: 100%;
       max-height: 400px;
@@ -61,7 +64,28 @@
       margin-top: 20px;
       display: none; /* hidden by default */
     }
+    /* Quad Container: vertical stack of two divs (#quad-top, #quad-bottom) */
+    #quad-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    display: none; /* hidden by default */
+    }
 
+
+    .quad-feed {
+      /* Each preview also has a 16:9 aspect ratio */
+      aspect-ratio: 16/9;
+      width: 100%;
+      object-fit: contain;
+      border: 2px solid #555;
+      cursor: pointer;
+      background-color: #000; /* optional, for letterbox space */
+    }
+    .selected {
+      border: 3px solid #007BFF;
+    }
     /* Section layout */
     .section {
       margin: 20px 0;
@@ -105,6 +129,37 @@
     #proxy-entry input {
       width: 300px;
     }
+    /* Large preview container on top */
+    .large-feed-container {
+      margin-bottom: 10px;
+    }
+
+    /* The large preview (selected camera) */
+    .quad-large {
+      aspect-ratio: 16/9;
+      width: 100%;
+      object-fit: contain;
+      background-color: #000; /* letterbox space */
+      border: 2px solid #555;
+      cursor: pointer; /* optional if you want it clickable */
+    }
+
+    /* Row of smaller previews */
+    .small-feed-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center; /* optional, or space-between, etc. */
+    }
+
+    /* Each small preview */
+    .quad-small {
+      aspect-ratio: 16/9;
+      width: 30%; /* so 3 can fit in a row, or adjust as you wish */
+      object-fit: contain;
+      background-color: #000;
+      border: 2px solid #555;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -115,22 +170,52 @@
       <input type="text" id="proxyUrlInput" value="https://8b12-71-225-123-228.ngrok-free.app" />
     </div>
 
-    <!-- Connection Section: device selection instead of manual IP input -->
+    <!-- Connection Section: device selection remains for legacy single view control -->
+    <!-- Connection Section: device selection updated for four cameras -->
     <div class="section" id="connection-section">
-      <label for="deviceSelect">Select Device:</label>
-      <select id="deviceSelect">
+        <label for="deviceSelect">Select Device:</label>
+        <select id="deviceSelect">
         <option value="camera1" selected>Camera 1</option>
         <option value="camera2">Camera 2</option>
-        <option value="controller">Controller</option>
-      </select>
-      <button id="connectionToggle">CONNECT (Snapshots)</button>
-      <!-- New buttons for HLS streaming -->
-      <button onclick="startHlsStream()">Start HLS</button>
-      <button onclick="stopHlsStream()">Stop HLS</button>
+        <option value="camera3">Camera 3</option>
+        <option value="camera4">Camera 4</option>
+        </select>
+        <button id="connectionToggle">CONNECT (Snapshots)</button>
+        <!-- New buttons for HLS streaming -->
+        <!-- <button onclick="startHlsStream()">Start HLS</button> -->
+        <!-- <button onclick="stopHlsStream()">Stop HLS</button> -->
+        <!-- Toggle View Button -->
+        <button id="toggleView" onclick="toggleView()">Switch to Quad View</button>
+    </div>
+  
+
+    <!-- Single Snapshot-based feed -->
+    <img id="camera-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera Feed" />
+
+    <!-- Main Quad Container (hidden by default) -->
+    <div id="quad-container" class="section">
+
+      <!-- Large Preview on Top -->
+      <div id="quad-top" class="large-feed-container">
+        <img id="quad-large-feed" class="quad-large" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png"
+            alt="Large Preview" />
+      </div>
+
+      <!-- Row of Smaller Feeds -->
+      <div id="quad-bottom" class="small-feed-row">
+        <!-- We'll keep four small placeholders, but only show three at a time. -->
+        <img id="quad-feed-1" class="quad-small" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png"
+            onclick="onSmallFeedClick('camera1')" alt="Camera 1" />
+        <img id="quad-feed-2" class="quad-small" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png"
+            onclick="onSmallFeedClick('camera2')" alt="Camera 2" />
+        <img id="quad-feed-3" class="quad-small" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png"
+            onclick="onSmallFeedClick('camera3')" alt="Camera 3" />
+        <img id="quad-feed-4" class="quad-small" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png"
+            onclick="onSmallFeedClick('camera4')" alt="Camera 4" />
+      </div>
+
     </div>
 
-    <!-- Snapshot-based feed (IMG) -->
-    <img id="camera-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera Feed" />
 
     <!-- HLS-based feed (VIDEO) -->
     <video id="hlsVideo" controls autoplay playsinline></video>
@@ -309,13 +394,14 @@
   <!-- hls.js needed for many desktop browsers to play HLS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    let defaultDevice = "camera1"; // Updated via dropdown selection
+    let defaultDevice = "camera1"; // Global active device (used by commands)
     let isConnected = false;
-    let frameInterval;
+    let frameInterval, quadInterval;
     const DEFAULT_FPS = 3;
     let FRAME_RATE = 1000 / DEFAULT_FPS;
-    let currentTransform = "";
+    let isQuadView = false;
     let currentRotationDegree = 0;
+    let currentTransform = "";
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("deviceSelect").addEventListener("change", (e) => {
@@ -324,8 +410,6 @@
       document.getElementById("connectionToggle").addEventListener("click", toggleConnection);
       document.getElementById("fpsSelect").addEventListener("change", handleFpsChange);
       document.getElementById("motionSync").addEventListener("change", handleMotionSyncChange);
-
-      // Tracking checkbox toggles
       document.getElementById("enableTracking").addEventListener("change", function () {
         if (this.checked) {
           fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&on`);
@@ -336,29 +420,66 @@
     });
 
     /**************************************************************************
+     * View Toggle Functions
+     **************************************************************************/
+     function toggleView() {
+        isQuadView = !isQuadView;
+        const singleFeed = document.getElementById("camera-feed");
+        const quadContainer = document.getElementById("quad-container");
+        const toggleButton = document.getElementById("toggleView");
+
+        if (isQuadView) {
+            singleFeed.style.display = "none";
+            quadContainer.style.display = "flex"; // vertical layout
+            toggleButton.textContent = "Switch to Single View";
+            stopLivePreview();
+            if (isConnected) {
+            startQuadLivePreview();
+            }
+            // Immediately hide the selected camera’s small feed
+            updateLayoutForSelectedCamera();
+        } else {
+            quadContainer.style.display = "none";
+            singleFeed.style.display = "block";
+            toggleButton.textContent = "Switch to Quad View";
+            stopQuadLivePreview();
+            if (isConnected) {
+            startLivePreview();
+            }
+        }
+        }
+
+
+
+    function selectCamera(device) {
+      defaultDevice = device;
+      // Remove the "selected" class from all quad feeds
+      document.querySelectorAll('.quad-feed').forEach(el => el.classList.remove('selected'));
+      // Highlight the selected camera feed
+      const deviceNumber = device.replace('camera', '');
+      const selectedElement = document.getElementById(`camera-feed-${deviceNumber}`);
+      if (selectedElement) {
+        selectedElement.classList.add('selected');
+      }
+    }
+
+    /**************************************************************************
      * HLS Streaming Functions
      **************************************************************************/
     function startHlsStream() {
-      // 1. Tell the server to start ffmpeg for this device
       fetch(`${getProxyUrl()}/proxy/hls/start?device=${defaultDevice}`)
         .then(r => r.json())
         .then(data => {
           console.log("HLS started:", data);
-          // 2. Once started, set up the <video> to load /proxy/hls/playlist.m3u8
           const videoEl = document.getElementById("hlsVideo");
-          // Show the video, hide the snapshot feed
           videoEl.style.display = "block";
           document.getElementById("camera-feed").style.display = "none";
-
           const hlsUrl = `${getProxyUrl()}/proxy/hls/playlist.m3u8`;
-
-          // 3. Use hls.js if supported, else try native HLS (Safari, iOS, etc.)
           if (Hls.isSupported()) {
             const hls = new Hls();
             hls.loadSource(hlsUrl);
             hls.attachMedia(videoEl);
           } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-            // Safari, iOS, etc.
             videoEl.src = hlsUrl;
           } else {
             alert("This browser does not support HLS natively or via hls.js!");
@@ -368,24 +489,26 @@
     }
 
     function stopHlsStream() {
-      // 1. Hide <video> and pause it
       const videoEl = document.getElementById("hlsVideo");
       videoEl.pause();
       videoEl.style.display = "none";
-      // 2. Show the snapshot feed again (if desired)
       document.getElementById("camera-feed").style.display = "block";
-      // (Optionally you can make a route to kill ffmpeg, but not strictly required.)
     }
 
     /**************************************************************************
-     * Snapshot-based approach
+     * Snapshot-based Live Preview Functions
      **************************************************************************/
     function handleFpsChange(event) {
       const selectedFps = parseInt(event.target.value, 10);
       FRAME_RATE = 1000 / selectedFps;
       if (isConnected) {
-        stopLivePreview();
-        startLivePreview();
+        if (isQuadView) {
+          stopQuadLivePreview();
+          startQuadLivePreview();
+        } else {
+          stopLivePreview();
+          startLivePreview();
+        }
       }
     }
 
@@ -398,46 +521,174 @@
     }
 
     function toggleConnection() {
-      const toggleButton = document.getElementById("connectionToggle");
-      if (!isConnected) {
-        startLivePreview();
-        toggleButton.textContent = "DISCONNECT (Snapshots)";
-      } else {
-        stopLivePreview();
-        toggleButton.textContent = "CONNECT (Snapshots)";
-        // Reset to a placeholder image
-        const feed = document.getElementById("camera-feed");
-        feed.src = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
-      }
-      isConnected = !isConnected;
-    }
+        const toggleButton = document.getElementById("connectionToggle");
+        const placeholder = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
+        if (!isConnected) {
+            if (isQuadView) {
+            startQuadLivePreview();
+            } else {
+            startLivePreview();
+            }
+            toggleButton.textContent = "DISCONNECT (Snapshots)";
+        } else {
+            if (isQuadView) {
+            stopQuadLivePreview();
+            // Reset quad view: set the large preview and all small previews to the placeholder.
+            document.getElementById("quad-large-feed").src = placeholder;
+            allCameras.forEach(cam => {
+                const smallFeedId = getSmallFeedId(cam);
+                const el = document.getElementById(smallFeedId);
+                if (el) el.src = placeholder;
+            });
+            } else {
+            stopLivePreview();
+            // Reset single view
+            document.getElementById("camera-feed").src = placeholder;
+            }
+            toggleButton.textContent = "CONNECT (Snapshots)";
+        }
+        isConnected = !isConnected;
+        }
+
+
+    let singleCameraTimer = null;
 
     function startLivePreview() {
-      // Show the snapshot feed (IMG), hide the HLS <video> if open
-      document.getElementById("camera-feed").style.display = "block";
-      document.getElementById("hlsVideo").style.display = "none";
-
-      frameInterval = setInterval(fetchCameraFrame, FRAME_RATE);
+        document.getElementById("camera-feed").style.display = "block";
+        document.getElementById("hlsVideo").style.display = "none";
+        fetchCameraFrameChained();
     }
 
     function stopLivePreview() {
-      clearInterval(frameInterval);
+        // Instead of clearInterval, we clear the singleCameraTimer
+        if (singleCameraTimer) {
+            clearTimeout(singleCameraTimer);
+            singleCameraTimer = null;
+        }
     }
 
-    function fetchCameraFrame() {
-      const cameraFeed = document.getElementById("camera-feed");
-      const timestamp = Date.now();
-      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
+    // The chained fetch
+    function fetchCameraFrameChained() {
+    const cameraFeed = document.getElementById("camera-feed");
+    const timestamp = Date.now();
+    const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
+    
+    const tempImg = new Image();
+    tempImg.onload = function () {
+        cameraFeed.src = newSrc;
+        // Store the timeout ID
+        singleCameraTimer = setTimeout(fetchCameraFrameChained, FRAME_RATE);
+    };
+    tempImg.onerror = function (err) {
+        console.error("Snapshot load failed:", err);
+        singleCameraTimer = setTimeout(fetchCameraFrameChained, FRAME_RATE);
+    };
+    tempImg.src = newSrc;
+    }
 
+    function fetchCameraFrameForDevice(device, elementId) {
+      const feedElement = document.getElementById(elementId);
+      const timestamp = Date.now();
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${device}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
       const tempImg = new Image();
       tempImg.onload = function () {
-        cameraFeed.src = newSrc;
+        feedElement.src = newSrc;
       };
       tempImg.onerror = function (err) {
-        console.error("Snapshot load failed:", err);
+        console.error(`Snapshot load failed for ${device}:`, err);
       };
       tempImg.src = newSrc;
     }
+
+    let selectedCamera = "camera1"; 
+    const allCameras = ["camera1", "camera2", "camera3", "camera4"];
+
+    // When you start quad preview
+    function startQuadLivePreview() {
+    allCameras.forEach((cam) => {
+        // Initialize the timer to a non-null value to show "active"
+        fetchTimers[cam] = true;
+        const elementId = (cam === selectedCamera) ? "quad-large-feed" : getSmallFeedId(cam);
+        fetchCameraFrameChainedForDevice(cam, elementId);
+    });
+    }
+
+    // Helper to map "camera1" → "quad-feed-1"
+    function getSmallFeedId(cameraName) {
+      const num = cameraName.replace("camera", "");
+      return `quad-feed-${num}`;
+    }
+
+
+    function onSmallFeedClick(newCam) {
+        stopQuadLivePreview();
+        selectedCamera = newCam;
+        defaultDevice = newCam; // Ensure control commands target the new camera
+        startQuadLivePreview();
+        updateLayoutForSelectedCamera(); // Hide the selected camera from the bottom row
+        }
+
+
+    function updateLayoutForSelectedCamera() {
+      allCameras.forEach((cam) => {
+        const smallFeedId = getSmallFeedId(cam);
+        const el = document.getElementById(smallFeedId);
+        if (!el) return;
+
+        // If it's the selected camera, hide the small feed 
+        // because it's displayed up top in the large feed.
+        el.style.display = (cam === selectedCamera) ? "none" : "block";
+      });
+    }
+
+    // Example of a global to track each camera's timer
+    const fetchTimers = {}; // { camera1: timeoutID, camera2: ... }
+
+    // Then in fetchCameraFrameChainedForDevice(), store the timeout ID:
+    // Start a chained fetch for one camera
+    function fetchCameraFrameChainedForDevice(device, elementId) {
+    const feedElement = document.getElementById(elementId);
+    const timestamp = Date.now();
+    const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${device}&timestamp=${timestamp}`;
+
+    const tempImg = new Image();
+    tempImg.onload = function () {
+        // If we already cleared the timer, don't schedule another loop
+        if (!fetchTimers[device]) {
+        return;
+        }
+        feedElement.src = newSrc;
+        fetchTimers[device] = setTimeout(
+        () => fetchCameraFrameChainedForDevice(device, elementId),
+        FRAME_RATE
+        );
+    };
+    tempImg.onerror = function (err) {
+        console.error(`Snapshot load failed for ${device}:`, err);
+        // Same guard check
+        if (!fetchTimers[device]) {
+        return;
+        }
+        fetchTimers[device] = setTimeout(
+        () => fetchCameraFrameChainedForDevice(device, elementId),
+        FRAME_RATE
+        );
+    };
+    tempImg.src = newSrc;
+    }
+
+    // When you stop quad preview
+    function stopQuadLivePreview() {
+    allCameras.forEach(cam => {
+        // Clear the pending timer, if any
+        if (fetchTimers[cam]) {
+        clearTimeout(fetchTimers[cam]);
+        // Also set it to null so the callback’s guard check sees “inactive”
+        fetchTimers[cam] = null;
+        }
+    });
+    }
+
 
     /**************************************************************************
      * Utility / PTZ Commands
