@@ -521,34 +521,37 @@
     }
 
     function toggleConnection() {
-        const toggleButton = document.getElementById("connectionToggle");
-        const placeholder = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
-        if (!isConnected) {
-            if (isQuadView) {
-            startQuadLivePreview();
-            } else {
-            startLivePreview();
-            }
-            toggleButton.textContent = "DISCONNECT (Snapshots)";
+      const toggleButton = document.getElementById("connectionToggle");
+      const placeholder = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
+      
+      if (!isConnected) {
+        // Set flag to true BEFORE starting the preview loop.
+        isConnected = true;
+        
+        if (isQuadView) {
+          startQuadLivePreview();
+          updateLayoutForSelectedCamera();
         } else {
-            if (isQuadView) {
-            stopQuadLivePreview();
-            // Reset quad view: set the large preview and all small previews to the placeholder.
-            document.getElementById("quad-large-feed").src = placeholder;
-            allCameras.forEach(cam => {
-                const smallFeedId = getSmallFeedId(cam);
-                const el = document.getElementById(smallFeedId);
-                if (el) el.src = placeholder;
-            });
-            } else {
-            stopLivePreview();
-            // Reset single view
-            document.getElementById("camera-feed").src = placeholder;
-            }
-            toggleButton.textContent = "CONNECT (Snapshots)";
+          startLivePreview();
         }
-        isConnected = !isConnected;
+        toggleButton.textContent = "DISCONNECT (Snapshots)";
+      } else {
+        if (isQuadView) {
+          stopQuadLivePreview();
+          document.getElementById("quad-large-feed").src = placeholder;
+          allCameras.forEach(cam => {
+            const smallFeedId = getSmallFeedId(cam);
+            const el = document.getElementById(smallFeedId);
+            if (el) el.src = placeholder;
+          });
+        } else {
+          stopLivePreview();
+          document.getElementById("camera-feed").src = placeholder;
         }
+        toggleButton.textContent = "CONNECT (Snapshots)";
+        isConnected = false;
+      }
+    }
 
 
     let singleCameraTimer = null;
@@ -569,22 +572,27 @@
 
     // The chained fetch
     function fetchCameraFrameChained() {
-    const cameraFeed = document.getElementById("camera-feed");
-    const timestamp = Date.now();
-    const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
-    
-    const tempImg = new Image();
-    tempImg.onload = function () {
+      // If we're not connected, exit immediately.
+      if (!isConnected) return;
+      
+      const cameraFeed = document.getElementById("camera-feed");
+      const timestamp = Date.now();
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
+      
+      const tempImg = new Image();
+      tempImg.onload = function () {
+        if (!isConnected) return; // Guard: do not schedule new fetch if disconnected.
         cameraFeed.src = newSrc;
-        // Store the timeout ID
         singleCameraTimer = setTimeout(fetchCameraFrameChained, FRAME_RATE);
-    };
-    tempImg.onerror = function (err) {
+      };
+      tempImg.onerror = function (err) {
         console.error("Snapshot load failed:", err);
+        if (!isConnected) return; // Do not schedule a new fetch if disconnected.
         singleCameraTimer = setTimeout(fetchCameraFrameChained, FRAME_RATE);
-    };
-    tempImg.src = newSrc;
+      };
+      tempImg.src = newSrc;
     }
+
 
     function fetchCameraFrameForDevice(device, elementId) {
       const feedElement = document.getElementById(elementId);
@@ -645,37 +653,27 @@
     const fetchTimers = {}; // { camera1: timeoutID, camera2: ... }
 
     // Then in fetchCameraFrameChainedForDevice(), store the timeout ID:
-    // Start a chained fetch for one camera
     function fetchCameraFrameChainedForDevice(device, elementId) {
-    const feedElement = document.getElementById(elementId);
-    const timestamp = Date.now();
-    const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${device}&timestamp=${timestamp}`;
-
-    const tempImg = new Image();
-    tempImg.onload = function () {
-        // If we already cleared the timer, don't schedule another loop
-        if (!fetchTimers[device]) {
-        return;
-        }
+      if (!isConnected) return;
+      
+      const feedElement = document.getElementById(elementId);
+      const timestamp = Date.now();
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${device}&timestamp=${timestamp}`;
+      
+      const tempImg = new Image();
+      tempImg.onload = function () {
+        if (!isConnected) return;
         feedElement.src = newSrc;
-        fetchTimers[device] = setTimeout(
-        () => fetchCameraFrameChainedForDevice(device, elementId),
-        FRAME_RATE
-        );
-    };
-    tempImg.onerror = function (err) {
+        fetchTimers[device] = setTimeout(() => fetchCameraFrameChainedForDevice(device, elementId), FRAME_RATE);
+      };
+      tempImg.onerror = function (err) {
         console.error(`Snapshot load failed for ${device}:`, err);
-        // Same guard check
-        if (!fetchTimers[device]) {
-        return;
-        }
-        fetchTimers[device] = setTimeout(
-        () => fetchCameraFrameChainedForDevice(device, elementId),
-        FRAME_RATE
-        );
-    };
-    tempImg.src = newSrc;
+        if (!isConnected) return;
+        fetchTimers[device] = setTimeout(() => fetchCameraFrameChainedForDevice(device, elementId), FRAME_RATE);
+      };
+      tempImg.src = newSrc;
     }
+
 
     // When you stop quad preview
     function stopQuadLivePreview() {
