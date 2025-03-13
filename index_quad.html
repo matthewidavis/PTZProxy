@@ -598,15 +598,12 @@
 
 
     function onSmallFeedClick(newCam) {
-      // Stop existing fetch loops
-      stopQuadLivePreview();
-
-      // Switch the selected camera
-      selectedCamera = newCam;
-
-      // Re-start with the updated layout
-      startQuadLivePreview();
-    }
+        stopQuadLivePreview();
+        selectedCamera = newCam;
+        defaultDevice = newCam; // Ensure control commands target the new camera
+        startQuadLivePreview();
+        updateLayoutForSelectedCamera(); // Hide the selected camera from the bottom row
+        }
 
 
     function updateLayoutForSelectedCamera() {
