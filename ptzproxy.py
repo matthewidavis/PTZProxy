@@ -76,9 +76,10 @@ app.add_middleware(
 # Global state (devices, sites)
 ##############################################################################
 ALLOWED_LAN_DEVICES = {
-    "camera1": "192.168.101.88",
-    "camera2": "192.168.101.231",
-    "controller": "192.168.1.200"
+    "camera1": "173.161.232.71",
+    "camera2": "192.168.12.201",
+    "camera3": "192.168.12.220",
+    "camera4": "192.168.12.243"
 }
 sites_list = list(WHITELISTED_ORIGINS)
 devices_list = [{"name": k, "ip": v} for k, v in ALLOWED_LAN_DEVICES.items()]
