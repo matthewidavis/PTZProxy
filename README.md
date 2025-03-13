@@ -40,5 +40,4 @@ Example command URL:
 ![Device Management Tab](https://github.com/user-attachments/assets/e3f3362c-ade7-4c6f-978f-551ea8f9bafc)
 
 **Web Interface**  
-![Web Interface](https://github.com/user-attachments/assets/02ebdf02-af98-4928-8047-72c810e25bde)
-
+![Web Interface](https://github.com/user-attachments/assets/a9d14a9a-2c61-43d8-9a20-b785eff929ea)
