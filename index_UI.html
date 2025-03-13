@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PTZOptics Camera Control - Quad View</title>
+  <style>
+    :root {
+      --bg-dark: #2a2a2a;
+      --bg-container: #333;
+      --text-light: #eaeaea;
+      --primary: #007BFF;
+      --border-color: #555;
+      --spacing: 10px;
+    }
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      margin: 0;
+      padding: 0;
+    }
+    /* Grid Layout */
+    .grid-container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: var(--spacing);
+      min-height: 100vh;
+    }
+    aside {
+      background-color: var(--bg-container);
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    main {
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    /* Inputs and Buttons */
+    input[type="text"],
+    input[type="number"],
+    select {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      width: 90%;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .section {
+      margin-bottom: var(--spacing);
+    }
+    /* Feed wrappers: 16:9 bounding boxes */
+    .feed-wrapper {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background-color: #000;
+      border: 2px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: var(--spacing);
+    }
+    .feed-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform-origin: center;
+    }
+    /* Single view feed wrapper */
+    #camera-feed-wrapper {
+      margin-bottom: var(--spacing);
+    }
+    /* Quad View Container */
+    #quad-container {
+      display: none;
+      flex-direction: column;
+      gap: var(--spacing);
+      margin-top: var(--spacing);
+    }
+    /* Quad view large feed */
+    #quad-large-feed-wrapper {
+      margin-bottom: var(--spacing);
+    }
+    /* Row of sub-previews */
+    .small-feed-row {
+      display: flex;
+      gap: var(--spacing);
+      justify-content: space-between;
+    }
+    /* Each sub-preview wrapper */
+    .quad-small-wrapper {
+      width: calc((100% - (2 * var(--spacing))) / 3);
+      aspect-ratio: 16/9;
+      background-color: #000;
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      overflow: hidden;
+      position: relative;
+    }
+    .quad-small-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform-origin: center;
+    }
+    /* Accordion Styling */
+    .accordion {
+      background-color: var(--bg-container);
+      color: var(--text-light);
+      cursor: pointer;
+      padding: 10px;
+      width: 100%;
+      text-align: left;
+      border: none;
+      border-radius: 5px;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .accordion:hover {
+      background-color: #444;
+    }
+    .panel {
+      /* Panels start closed */
+      display: none;
+      background-color: var(--bg-container);
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: var(--spacing);
+      /* Use flex for a neat grid layout of buttons */
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        height: auto;
+      }
+    }
+  </style>
+  <script>
+    // Toggle function for accordion panels: toggles between "none" and "flex"
+    function toggleAccordion(panelId) {
+      const panel = document.getElementById(panelId);
+      panel.style.display = (panel.style.display === "flex") ? "none" : "flex";
+    }
+  </script>
+</head>
+<body>
+  <div class="grid-container">
+    <!-- Sidebar with Controls -->
+    <aside>
+      <h2>Controls</h2>
+      <!-- Proxy URL Entry -->
+      <div id="proxy-entry" class="section">
+        <label for="proxyUrlInput">Proxy URL:</label>
+        <input type="text" id="proxyUrlInput" value="https://8b12-71-225-123-228.ngrok-free.app" />
+      </div>
+      <!-- Connection Section -->
+      <div id="connection-section" class="section">
+        <label for="deviceSelect">Select Device:</label>
+        <select id="deviceSelect">
+          <option value="camera1" selected>Camera 1</option>
+          <option value="camera2">Camera 2</option>
+          <option value="camera3">Camera 3</option>
+          <option value="camera4">Camera 4</option>
+        </select>
+        <button id="connectionToggle">CONNECT (Snapshots)</button>
+        <button id="toggleView" onclick="toggleView()">Switch to Quad View</button>
+      </div>
+      <!-- Image Orientation Controls -->
+      <button class="accordion" onclick="toggleAccordion('image-orientation')">Image Orientation</button>
+      <div class="panel" id="image-orientation">
+        <button onclick="applyTransform('rotate')">Rotate 90°</button>
+        <button onclick="applyTransform('flipH')">Flip Horizontally</button>
+        <button onclick="applyTransform('flipV')">Flip Vertically</button>
+        <button onclick="applyTransform('default')">Default</button>
+      </div>
+      <!-- Pan-Tilt Controls -->
+      <button class="accordion" onclick="toggleAccordion('pan-tilt-controls')">Pan-Tilt Controls</button>
+      <div class="panel" id="pan-tilt-controls">
+        <button onmousedown="sendCommand('upleft')" onmouseup="sendCommand('ptzstop')">&#8598;</button>
+        <button onmousedown="sendCommand('up')" onmouseup="sendCommand('ptzstop')">&#8593;</button>
+        <button onmousedown="sendCommand('upright')" onmouseup="sendCommand('ptzstop')">&#8599;</button>
+        <button onmousedown="sendCommand('left')" onmouseup="sendCommand('ptzstop')">&#8592;</button>
+        <button onclick="sendHomeCommand()">HOME</button>
+        <button onmousedown="sendCommand('right')" onmouseup="sendCommand('ptzstop')">&#8594;</button>
+        <button onmousedown="sendCommand('downleft')" onmouseup="sendCommand('ptzstop')">&#8601;</button>
+        <button onmousedown="sendCommand('down')" onmouseup="sendCommand('ptzstop')">&#8595;</button>
+        <button onmousedown="sendCommand('downright')" onmouseup="sendCommand('ptzstop')">&#8600;</button>
+      </div>
+      <!-- Speed and Options -->
+      <button class="accordion" onclick="toggleAccordion('speed-controls')">Speed &amp; Options</button>
+      <div class="panel" id="speed-controls">
+        <div>
+          <label for="panSpeed">Pan Speed:</label>
+          <select id="panSpeed">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+          </select>
+        </div>
+        <div>
+          <label for="tiltSpeed">Tilt Speed:</label>
+          <select id="tiltSpeed">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+        <div>
+          <label for="motionSync">MotionSync:</label>
+          <input type="checkbox" id="motionSync" />
+        </div>
+        <div id="trackingCheckboxContainer">
+          <label for="enableTracking">Tracking:</label>
+          <input type="checkbox" id="enableTracking" />
+        </div>
+      </div>
+      <!-- Zoom & Focus Controls -->
+      <button class="accordion" onclick="toggleAccordion('controls')">Zoom &amp; Focus</button>
+      <div class="panel" id="controls">
+        <div>
+          <button onmousedown="zoomIn()" onmouseup="sendStopCommands()">Zoom In</button>
+          <button onmousedown="zoomOut()" onmouseup="sendStopCommands()">Zoom Out</button>
+          <button onmousedown="sendStopCommands()">Stop</button>
+          <button onmousedown="focusIn()" onmouseup="sendStopCommands()">Focus In</button>
+          <button onmousedown="focusOut()" onmouseup="sendStopCommands()">Focus Out</button>
+        </div>
+        <div>
+          <label for="zoomSpeed">Zoom Speed:</label>
+          <select id="zoomSpeed">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+          </select>
+          <label for="focusSpeed">Focus Speed:</label>
+          <select id="focusSpeed">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+          </select>
+        </div>
+      </div>
+      <!-- Presets & FPS -->
+      <button class="accordion" onclick="toggleAccordion('presets-container')">Presets &amp; FPS</button>
+      <div class="panel" id="presets-container">
+        <div id="preset-buttons">
+          <button onclick="preset('recall', 1)">Preset 1</button>
+          <button onclick="preset('recall', 2)">Preset 2</button>
+          <button onclick="preset('recall', 3)">Preset 3</button>
+          <button onclick="preset('recall', 4)">Preset 4</button>
+          <button onclick="preset('recall', 5)">Preset 5</button>
+          <button onclick="preset('recall', 6)">Preset 6</button>
+        </div>
+        <div id="preset-input">
+          <input type="number" id="preset-number" placeholder="Preset Number" />
+          <button onclick="recallpresetFromInput()">Call</button>
+          <button onclick="savepresetFromInput()">Set</button>
+          <label for="fpsSelect">FPS:</label>
+          <select id="fpsSelect">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7" selected>7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+    
+    <!-- Main Content: Camera Feed -->
+    <main>
+      <!-- Single view feed wrapper -->
+      <div id="camera-feed-wrapper" class="feed-wrapper">
+        <img id="camera-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera Feed" />
+      </div>
+      
+      <!-- Main Quad Container (hidden by default) -->
+      <div id="quad-container">
+        <!-- Large feed on top -->
+        <div id="quad-large-feed-wrapper" class="feed-wrapper">
+          <img id="quad-large-feed" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Large Preview" />
+        </div>
+        <!-- Row of sub-previews (selected camera's wrapper will be hidden) -->
+        <div class="small-feed-row">
+          <div id="quad-feed-1-wrapper" class="quad-small-wrapper" onclick="onSmallFeedClick('camera1')">
+            <img id="quad-feed-1" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera 1" />
+          </div>
+          <div id="quad-feed-2-wrapper" class="quad-small-wrapper" onclick="onSmallFeedClick('camera2')">
+            <img id="quad-feed-2" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera 2" />
+          </div>
+          <div id="quad-feed-3-wrapper" class="quad-small-wrapper" onclick="onSmallFeedClick('camera3')">
+            <img id="quad-feed-3" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera 3" />
+          </div>
+          <div id="quad-feed-4-wrapper" class="quad-small-wrapper" onclick="onSmallFeedClick('camera4')">
+            <img id="quad-feed-4" src="https://ptzoptics.com/wp-content/uploads/2023/02/0001.png" alt="Camera 4" />
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- HLS/Video code removed since not supported -->
+  
+  <script>
+    /**************************************************************************
+     * 1) Store orientation states for each camera
+     **************************************************************************/
+    const cameraTransforms = {
+      camera1: { rotation: 0, flipH: false, flipV: false },
+      camera2: { rotation: 0, flipH: false, flipV: false },
+      camera3: { rotation: 0, flipH: false, flipV: false },
+      camera4: { rotation: 0, flipH: false, flipV: false },
+    };
+
+    function generateTransformString({ rotation, flipH, flipV }) {
+      const scaleX = flipH ? -1 : 1;
+      const scaleY = flipV ? -1 : 1;
+      return `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`;
+    }
+
+    /**************************************************************************
+     * 2) applyTransform(type) modifies the currently selected camera’s orientation
+     **************************************************************************/
+    function applyTransform(type) {
+      const cam = document.getElementById("deviceSelect").value;
+      const state = cameraTransforms[cam];
+      
+      switch (type) {
+        case "rotate":
+          state.rotation = (state.rotation + 90) % 360;
+          break;
+        case "flipH":
+          state.flipH = !state.flipH;
+          break;
+        case "flipV":
+          state.flipV = !state.flipV;
+          break;
+        case "default":
+          state.rotation = 0;
+          state.flipH = false;
+          state.flipV = false;
+          break;
+      }
+      updateAllFeedsForCamera(cam);
+    }
+
+    /**************************************************************************
+     * 3) Update single & quad feeds for a specific camera
+     **************************************************************************/
+    function updateAllFeedsForCamera(cam) {
+      const transformValue = generateTransformString(cameraTransforms[cam]);
+      
+      // Single view:
+      if (!isQuadView && defaultDevice === cam) {
+        const singleFeedImg = document.getElementById("camera-feed");
+        if (singleFeedImg) singleFeedImg.style.transform = transformValue;
+      }
+      
+      // Quad large feed:
+      if (isQuadView && selectedCamera === cam) {
+        const largeFeedImg = document.getElementById("quad-large-feed");
+        if (largeFeedImg) largeFeedImg.style.transform = transformValue;
+      }
+      
+      // Quad small feed:
+      const smallFeedImg = document.getElementById(getSmallFeedId(cam));
+      if (smallFeedImg) smallFeedImg.style.transform = transformValue;
+    }
+
+    /**************************************************************************
+     * 4) Helper functions for quad view element IDs
+     **************************************************************************/
+    function getSmallFeedId(cameraName) {
+      const num = cameraName.replace("camera", "");
+      return `quad-feed-${num}`;
+    }
+    function getSmallFeedWrapperId(cameraName) {
+      const num = cameraName.replace("camera", "");
+      return `quad-feed-${num}-wrapper`;
+    }
+
+    /**************************************************************************
+     * 5) Snapshot / PTZ logic
+     **************************************************************************/
+    let defaultDevice = "camera1";
+    let isConnected = false;
+    let singleCameraTimer = null;
+    // Default FPS set to 7 (≈142 ms interval)
+    const DEFAULT_FPS = 7;
+    let FRAME_RATE = 1000 / DEFAULT_FPS;
+    let isQuadView = false;
+    let selectedCamera = "camera1"; 
+    const allCameras = ["camera1", "camera2", "camera3", "camera4"];
+    const fetchTimers = {};
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("deviceSelect").addEventListener("change", (e) => {
+        defaultDevice = e.target.value;
+      });
+      document.getElementById("connectionToggle").addEventListener("click", toggleConnection);
+      document.getElementById("fpsSelect").addEventListener("change", handleFpsChange);
+      document.getElementById("motionSync").addEventListener("change", handleMotionSyncChange);
+      document.getElementById("enableTracking").addEventListener("change", function () {
+        if (this.checked) {
+          fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&on`);
+        } else {
+          fetch(`${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=/cgi-bin/param.cgi?set_overlay&autotracking&off`);
+        }
+      });
+    });
+
+    /**************************************************************************
+     * 6) View Toggle Functions
+     **************************************************************************/
+    function toggleView() {
+      isQuadView = !isQuadView;
+      const singleFeedWrapper = document.getElementById("camera-feed-wrapper");
+      const quadContainer = document.getElementById("quad-container");
+      const toggleButton = document.getElementById("toggleView");
+    
+      if (isQuadView) {
+        singleFeedWrapper.style.display = "none";
+        quadContainer.style.display = "flex";
+        toggleButton.textContent = "Switch to Single View";
+        stopLivePreview();
+        if (isConnected) {
+          startQuadLivePreview();
+        }
+        updateLayoutForSelectedCamera();
+      } else {
+        quadContainer.style.display = "none";
+        singleFeedWrapper.style.display = "block";
+        toggleButton.textContent = "Switch to Quad View";
+        stopQuadLivePreview();
+        if (isConnected) startLivePreview();
+      }
+    }
+
+    function onSmallFeedClick(newCam) {
+      stopQuadLivePreview();
+      selectedCamera = newCam;
+      defaultDevice = newCam;
+      startQuadLivePreview();
+      updateLayoutForSelectedCamera();
+    }
+
+    function updateLayoutForSelectedCamera() {
+      // In quad view, hide the wrapper for the selected camera so only 3 show.
+      allCameras.forEach((cam) => {
+        const wrapperId = getSmallFeedWrapperId(cam);
+        const wrapperEl = document.getElementById(wrapperId);
+        if (!wrapperEl) return;
+        wrapperEl.style.display = (cam === selectedCamera) ? "none" : "block";
+      });
+      updateAllFeedsForCamera(selectedCamera);
+    }
+
+    /**************************************************************************
+     * 7) Snapshot-based Live Preview Functions
+     **************************************************************************/
+    function handleFpsChange(event) {
+      const selectedFps = parseInt(event.target.value, 10);
+      FRAME_RATE = 1000 / selectedFps;
+      if (isConnected) {
+        if (isQuadView) {
+          stopQuadLivePreview();
+          startQuadLivePreview();
+        } else {
+          stopLivePreview();
+          startLivePreview();
+        }
+      }
+    }
+
+    function toggleConnection() {
+      const toggleButton = document.getElementById("connectionToggle");
+      const placeholder = "https://ptzoptics.com/wp-content/uploads/2023/02/0001.png";
+      
+      if (!isConnected) {
+        isConnected = true;
+        if (isQuadView) {
+          startQuadLivePreview();
+          updateLayoutForSelectedCamera();
+        } else {
+          startLivePreview();
+        }
+        toggleButton.textContent = "DISCONNECT (Snapshots)";
+      } else {
+        if (isQuadView) {
+          stopQuadLivePreview();
+          document.getElementById("quad-large-feed").src = placeholder;
+          allCameras.forEach(cam => {
+            const imgEl = document.getElementById(getSmallFeedId(cam));
+            if (imgEl) imgEl.src = placeholder;
+          });
+        } else {
+          stopLivePreview();
+          document.getElementById("camera-feed").src = placeholder;
+        }
+        toggleButton.textContent = "CONNECT (Snapshots)";
+        isConnected = false;
+      }
+    }
+
+    function startLivePreview() {
+      fetchCameraFrameChained();
+      updateAllFeedsForCamera(defaultDevice);
+    }
+
+    function stopLivePreview() {
+      if (singleCameraTimer) {
+        clearTimeout(singleCameraTimer);
+        singleCameraTimer = null;
+      }
+    }
+
+    function fetchCameraFrameChained() {
+      if (!isConnected) return;
+      const cameraFeed = document.getElementById("camera-feed");
+      const timestamp = Date.now();
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${defaultDevice}&timestamp=${timestamp}&ngrok-skip-browser-warning=true`;
+      const tempImg = new Image();
+      tempImg.onload = function () {
+        if (!isConnected) return;
+        cameraFeed.src = newSrc;
+        singleCameraTimer = setTimeout(fetchCameraFrameChained, FRAME_RATE);
+      };
+      tempImg.onerror = function () {
+        if (!isConnected) return;
+        singleCameraTimer = setTimeout(fetchCameraFrameChained, FRAME_RATE);
+      };
+      tempImg.src = newSrc;
+    }
+
+    function startQuadLivePreview() {
+      // In quad view, start each camera's snapshot loop immediately (no stagger)
+      allCameras.forEach(cam => {
+        fetchTimers[cam] = true;
+        const elementId = (cam === selectedCamera) ? "quad-large-feed" : getSmallFeedId(cam);
+        fetchCameraFrameChainedForDevice(cam, elementId);
+        updateAllFeedsForCamera(cam);
+      });
+    }
+
+    function stopQuadLivePreview() {
+      allCameras.forEach(cam => {
+        if (fetchTimers[cam]) {
+          clearTimeout(fetchTimers[cam]);
+          fetchTimers[cam] = null;
+        }
+      });
+    }
+
+    function fetchCameraFrameChainedForDevice(device, elementId) {
+      if (!isConnected) return;
+      const feedElement = document.getElementById(elementId);
+      const timestamp = Date.now();
+      const newSrc = `${getProxyUrl()}/proxy/snapshot?device=${device}&timestamp=${timestamp}`;
+      const tempImg = new Image();
+      tempImg.onload = function () {
+        if (!isConnected) return;
+        feedElement.src = newSrc;
+        fetchTimers[device] = setTimeout(() => fetchCameraFrameChainedForDevice(device, elementId), FRAME_RATE);
+      };
+      tempImg.onerror = function () {
+        if (!isConnected) return;
+        fetchTimers[device] = setTimeout(() => fetchCameraFrameChainedForDevice(device, elementId), FRAME_RATE);
+      };
+      tempImg.src = newSrc;
+    }
+
+    /**************************************************************************
+     * 8) PTZ & Other Commands
+     **************************************************************************/
+    function getProxyUrl() {
+      let url = document.getElementById("proxyUrlInput").value;
+      if (url.endsWith("/")) {
+        url = url.slice(0, -1);
+      }
+      return url;
+    }
+
+    // Conditionally add our custom header only for non-PTZ commands.
+    // We decode the URL to check for "/cgi-bin/ptzctrl.cgi"
+    function myFetch(url, options = {}) {
+      const decodedUrl = decodeURIComponent(url);
+      if (decodedUrl.includes("/cgi-bin/ptzctrl.cgi")) {
+        return fetch(url, options);
+      } else {
+        options.headers = {
+          "ngrok-skip-browser-warning": "true",
+          ...options.headers,
+        };
+        return fetch(url, options);
+      }
+    }
+
+    function buildProxyUrl(innerUrl) {
+      return `${getProxyUrl()}/proxy/http?device=${defaultDevice}&url=${encodeURIComponent(innerUrl)}`;
+    }
+
+    function sendCommand(cmd) {
+      const PAN_SPEED = document.getElementById("panSpeed").value;
+      const TILT_SPEED = document.getElementById("tiltSpeed").value;
+      let command;
+      switch (cmd) {
+        case "up":
+          command = `up&${TILT_SPEED}`;
+          break;
+        case "down":
+          command = `down&${TILT_SPEED}`;
+          break;
+        case "left":
+          command = `left&${PAN_SPEED}`;
+          break;
+        case "right":
+          command = `right&${PAN_SPEED}`;
+          break;
+        case "upleft":
+          command = `leftup&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "upright":
+          command = `rightup&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "downleft":
+          command = `leftdown&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "downright":
+          command = `rightdown&${PAN_SPEED}&${TILT_SPEED}`;
+          break;
+        case "ptzstop":
+          command = `ptzstop`;
+          break;
+        default:
+          command = cmd;
+          break;
+      }
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+        .then(response => response.text())
+        .then(text => console.log("Command response:", text))
+        .catch(err => console.error("Command error:", err));
+    }
+
+    function sendHomeCommand() {
+      myFetch(buildProxyUrl("/cgi-bin/ptzctrl.cgi?ptzcmd&home"))
+        .then(response => response.text())
+        .then(text => console.log("Home command response:", text))
+        .catch(err => console.error("Home command error:", err));
+    }
+
+    function preset(action, pos) {
+      const command = action === "set" ? `posset&${pos}` : `poscall&${pos}`;
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&${command}`))
+        .then(response => response.text())
+        .then(text => console.log("Preset response:", text))
+        .catch(err => console.error("Preset error:", err));
+    }
+
+    function recallpresetFromInput() {
+      const presetNumber = document.getElementById("preset-number").value;
+      preset("recall", presetNumber);
+    }
+
+    function savepresetFromInput() {
+      const presetNumber = document.getElementById("preset-number").value;
+      preset("set", presetNumber);
+    }
+
+    function zoomIn() {
+      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomin&${ZOOM_SPEED}`))
+        .then(response => response.text())
+        .then(text => console.log("ZoomIn response:", text))
+        .catch(err => console.error("ZoomIn error:", err));
+    }
+
+    function zoomOut() {
+      const ZOOM_SPEED = document.getElementById("zoomSpeed").value;
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomout&${ZOOM_SPEED}`))
+        .then(response => response.text())
+        .then(text => console.log("ZoomOut response:", text))
+        .catch(err => console.error("ZoomOut error:", err));
+    }
+
+    function focusIn() {
+      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusin&${FOCUS_SPEED}`))
+        .then(response => response.text())
+        .then(text => console.log("FocusIn response:", text))
+        .catch(err => console.error("FocusIn error:", err));
+    }
+
+    function focusOut() {
+      const FOCUS_SPEED = document.getElementById("focusSpeed").value;
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&focusout&${FOCUS_SPEED}`))
+        .then(response => response.text())
+        .then(text => console.log("FocusOut response:", text))
+        .catch(err => console.error("FocusOut error:", err));
+    }
+
+    function sendStopCommands() {
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&ptzstop&1&1`))
+        .then(response => response.text())
+        .then(text => console.log("Stop command response:", text))
+        .catch(err => console.error("Stop command error:", err));
+      myFetch(buildProxyUrl(`/cgi-bin/ptzctrl.cgi?ptzcmd&zoomstop`))
+        .then(response => response.text())
+        .then(text => console.log("Zoom stop response:", text))
+        .catch(err => console.error("Zoom stop error:", err));
+    }
+  </script>
+</body>
+</html>
