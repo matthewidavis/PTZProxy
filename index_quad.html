@@ -64,14 +64,16 @@
       margin-top: 20px;
       display: none; /* hidden by default */
     }
-    /* Quad View Layout */
+    /* Quad Container: vertical stack of two divs (#quad-top, #quad-bottom) */
     #quad-container {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-top: 20px;
-      display: none; /* hidden by default */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    display: none; /* hidden by default */
     }
+
+
     .quad-feed {
       /* Each preview also has a 16:9 aspect ratio */
       aspect-ratio: 16/9;
@@ -420,30 +422,34 @@
     /**************************************************************************
      * View Toggle Functions
      **************************************************************************/
-    function toggleView() {
-      isQuadView = !isQuadView;
-      const singleFeed = document.getElementById("camera-feed");
-      const quadContainer = document.getElementById("quad-container");
-      const toggleButton = document.getElementById("toggleView");
-      if (isQuadView) {
-        singleFeed.style.display = "none";
-        quadContainer.style.display = "grid";
-        toggleButton.textContent = "Switch to Single View";
-        // Stop single view live preview if running
-        stopLivePreview();
-        if (isConnected) {
-          startQuadLivePreview();
+     function toggleView() {
+        isQuadView = !isQuadView;
+        const singleFeed = document.getElementById("camera-feed");
+        const quadContainer = document.getElementById("quad-container");
+        const toggleButton = document.getElementById("toggleView");
+
+        if (isQuadView) {
+            singleFeed.style.display = "none";
+            quadContainer.style.display = "flex"; // vertical layout
+            toggleButton.textContent = "Switch to Single View";
+            stopLivePreview();
+            if (isConnected) {
+            startQuadLivePreview();
+            }
+            // Immediately hide the selected camera’s small feed
+            updateLayoutForSelectedCamera();
+        } else {
+            quadContainer.style.display = "none";
+            singleFeed.style.display = "block";
+            toggleButton.textContent = "Switch to Quad View";
+            stopQuadLivePreview();
+            if (isConnected) {
+            startLivePreview();
+            }
         }
-      } else {
-        quadContainer.style.display = "none";
-        singleFeed.style.display = "block";
-        toggleButton.textContent = "Switch to Quad View";
-        stopQuadLivePreview();
-        if (isConnected) {
-          startLivePreview();
         }
-      }
-    }
+
+
 
     function selectCamera(device) {
       defaultDevice = device;
@@ -617,8 +623,6 @@
         el.style.display = (cam === selectedCamera) ? "none" : "block";
       });
     }
-
-
 
     // Example of a global to track each camera's timer
     const fetchTimers = {}; // { camera1: timeoutID, camera2: ... }
